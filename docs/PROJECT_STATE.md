@@ -4,7 +4,7 @@
 trading terminal: what is built, what was decided and why, what is deliberately
 absent, and what comes next.
 
-Last updated: 2026-07-31, after Wyckoff event labelling, position correlation,
+Last updated: 2026-08-04, after Wyckoff event labelling, position correlation,
 the random-walk backtest proof, TOTP two-factor authentication, the Markets
 browser UI, the market scanner, self-service password reset, the Tradier
 broker adapter, the economic calendar, the admin-only gate on
@@ -15,16 +15,24 @@ broker reconciliation, an options pricing engine (Black-Scholes, binomial,
 Greeks, payoff diagrams), a third broker adapter (Interactive Brokers),
 admin-only MFA recovery, Redis-backed rate limiting, a generic additive
 migration sweep, a stream-room leak found by load testing and fixed, and
-structured logging plus an admin-gated metrics endpoint, and admin account
-management.
+structured logging plus an admin-gated metrics endpoint, admin account
+management, and **the extraction of this platform out of `Project-DEX` into its
+own repository with a real landing page** (see decision 37).
 
 ---
 
 ## Where things stand
 
+Repo: [`nexarohc/Project-Legend-Trade`](https://github.com/nexarohc/Project-Legend-Trade)
 Branch: `claude/institutional-ai-trading-platform-pib2l4`
-PR: [#1](https://github.com/nexarohc/Project-DEX/pull/1) — **draft**, base is
-`claude/dex-ai-tools-setup-176lxa` (there is no `main` on the remote)
+PR: [#1](https://github.com/nexarohc/Project-Legend-Trade/pull/1) — **draft**, base is `main`
+
+Everything before the extraction commit was built in
+[`nexarohc/Project-DEX`](https://github.com/nexarohc/Project-DEX) on the same
+branch name, where it shared a repository with a desktop AI assistant. The
+commit hashes in the table below are from that repo; the code arrived here as a
+single extraction commit. `Project-DEX` is deliberately left untouched — the
+split was done copy-first and is reversible.
 
 | Commit | Contents | CI |
 |---|---|---|
@@ -53,10 +61,13 @@ PR: [#1](https://github.com/nexarohc/Project-DEX/pull/1) — **draft**, base is
 | `1f7a4c9` | Generic additive migration sweep (`_add_missing_columns`) so a model column with no hand-written migration block can no longer silently break existing databases; Alembic evaluated and deliberately not adopted (see decision 33) | Verify on resume |
 | `9b2e1d4` | **Stream-room leak fixed** — the WebSocket disconnect path unsubscribed without the provider it subscribed with, leaking an upstream room per client (bug 5, decision 34). Found by a 150-client load test: 50 rooms leaked before, 0 after | Verify on resume |
 | `4e77b12` | Structured JSON logging (`LOG_FORMAT=json`, uvicorn included) and an admin-gated Prometheus `/metrics` endpoint with a route-template cardinality guard (`app/observability.py`, decision 35) | Verify on resume |
-| _this one_ | Admin account management: list/disable/enable/unlock users plus MFA reset, with an Accounts panel in Settings that is invisible to non-admins (decision 36) | Verify on resume |
+| `(DEX)` | Admin account management: list/disable/enable/unlock users plus MFA reset, with an Accounts panel that is invisible to non-admins (decision 36) | All green |
+| _this one_ | **Extraction into `Project-Legend-Trade`** — assistant routers, models, tests and frontend removed; `DEX_*` settings renamed to `LEGEND_*` with back-compat aliases (one deliberate exception); a real landing page, three loaded typefaces, and two layout bugs fixed (decision 37) | This PR |
 
-645 tests pass locally (632 with no Redis reachable — the Redis-backed
-rate-limit tests skip rather than fail). None require network access.
+630 tests are collected here; 622 pass and 8 skip with no Redis reachable — the
+Redis-backed rate-limit tests skip rather than fail. None require network access.
+The count dropped from 645 in `Project-DEX` because the assistant's orchestrator,
+permissions and memory tests left with the code they covered.
 
 ### Verified working against live data
 
@@ -68,7 +79,7 @@ rate-limit tests skip rather than fail). None require network access.
 - Full auth flow: first-run setup → sign in → authenticated WebSocket → sign out
   re-gates the app.
 - Docker image builds, container starts, `/health` responds (verified in CI).
-- Execution panel against a live backend with `DEX_ENABLE_LIVE_TRADING=true`:
+- Execution panel against a live backend with `LEGEND_ENABLE_LIVE_TRADING=true`:
   paper is the default, the live banner is absent on paper and unmissable on
   live, live orders are refused until the phrase is typed, and the kill switch
   banner appears — checked in a real browser with zero console errors.
@@ -105,7 +116,7 @@ rate-limit tests skip rather than fail). None require network access.
   the browser exposes, so the check needed to be case-insensitive. Not a bug
   in the app.)
 - Password reset, full round trip in a real browser against a fresh database
-  with `DEX_AUTH_REQUIRED=always`: registered an account, signed out, clicked
+  with `LEGEND_AUTH_REQUIRED=always`: registered an account, signed out, clicked
   "Forgot password?", submitted the email, got the generic "if that address
   has an account…" confirmation, pulled the reset link from the backend log
   (SMTP deliberately left unconfigured for this run), opened it, set a new
@@ -133,7 +144,7 @@ rate-limit tests skip rather than fail). None require network access.
   instance saw the button disabled with the "limited to the instance
   administrator" explanation and the broker selector hidden entirely.
 - The admin Accounts panel in a real browser against a live server with
-  `DEX_AUTH_REQUIRED=always`, both roles: the admin saw both accounts and
+  `LEGEND_AUTH_REQUIRED=always`, both roles: the admin saw both accounts and
   disabled one (the row turning red with an Enable button, and the account's
   existing sessions refused on the next request); the **non-admin saw no
   Accounts section at all and none of the other account's details**. The
@@ -142,7 +153,7 @@ rate-limit tests skip rather than fail). None require network access.
   your own account." while leaving the session signed in. Only console error
   was the pre-existing favicon 404.
 - Structured logging and metrics against a real running server with
-  `DEX_AUTH_REQUIRED=always`. JSON logging: **every** line parsed as JSON,
+  `LEGEND_AUTH_REQUIRED=always`. JSON logging: **every** line parsed as JSON,
   11 of 11 — including uvicorn's own access lines, which needed an explicit
   fix (see decision 35) because uvicorn installs its own handlers with
   `propagate=False` and a root-logger config alone left them as plain text.
@@ -174,7 +185,7 @@ rate-limit tests skip rather than fail). None require network access.
 - Redis-backed rate limiting against a **real Redis server**, end to end
   through the HTTP path rather than only at the bucket level: with
   `REDIS_URL` set, `/auth/login` allowed exactly 10 attempts then returned
-  429, and the bucket was visible in Redis (`dex:rl:login:127.0.0.1`) with
+  429, and the bucket was visible in Redis (`legend:rl:login:127.0.0.1`) with
   its remaining tokens. The control experiment is the one that matters:
   two `RateLimiter` instances standing in for two workers allowed **6 of 6**
   requests in-process (each getting its own full budget — the actual bug)
@@ -186,7 +197,7 @@ rate-limit tests skip rather than fail). None require network access.
   Redis stopped the Redis-dependent tests skip rather than fail, so the
   suite still passes with no network access.
 - Admin MFA recovery, full round trip against a live server with
-  `DEX_AUTH_REQUIRED=always` and a fresh database: registered an admin and a
+  `LEGEND_AUTH_REQUIRED=always` and a fresh database: registered an admin and a
   second account, enrolled real TOTP on the second (confirmed with a code
   computed from the returned secret, ten recovery codes issued), confirmed
   its login then returned an `mfa_token` challenge rather than tokens —
@@ -689,6 +700,48 @@ These were deliberate. Changing them is fine, but do it knowingly.
     protection is worse than no code, so if this is ever removed, remove the
     comment claiming it protects anything too.**
 
+37. **Renamed settings keep their old names — except the one that arms real
+    money.** The extraction renamed every `DEX_*` environment variable to
+    `LEGEND_*`. All of them still resolve under the old spelling, because an
+    operator's existing `.env` being silently ignored after a rename is the
+    same class of failure the alias list was built to prevent: you set a
+    security setting the documented way and get nothing.
+
+    `LEGEND_ENABLE_LIVE_TRADING` is the single exception and does **not**
+    answer to `DEX_ENABLE_LIVE_TRADING`. It is the instance switch that makes
+    live mode reachable at all, and honouring a leftover variable from a
+    differently-named product would arm real money without anyone deciding to.
+    Everywhere else, accepting the old name is the safe direction; here,
+    ignoring it is. Re-setting it costs five seconds and is a deliberate act,
+    which is exactly what arming live trading should be. **If someone
+    "fixes the inconsistency" by adding the alias, they have removed a safety
+    property, not tidied one.**
+
+    The same asymmetry governs the database path: `DEX_DB_PATH` still works,
+    because pointing at the wrong database loses data rather than risking it.
+
+38. **The landing page is state, not a route, and the terminal is the only
+    screen with a fixed-height shell.** Three screens (landing → sign-in →
+    terminal), two of which must not be deep-linkable, is less problem than a
+    router is machinery. But the first version got the layout inverted: `#root`
+    carried `height: 100%`, which the terminal needs so each panel scrolls
+    independently, and the landing page inherited it and became unscrollable —
+    its whole body trapped in an inner container. Anchor links, browser scroll
+    restoration and the mobile URL bar all key off the *document* scroller.
+
+    `#root` is now `min-height: 100%` and any screen wanting the fixed shell
+    asks for `h-screen` itself. **A fixed-height app shell is a terminal
+    affordance, not a global one — do not push it back up to the root.**
+
+39. **`flex-1` on a tab strip clips instead of scrolling, and clipped tabs are
+    missing features.** Seven side-panel tabs across a 26rem column silently
+    cut off the last two; Execute was unreachable by mouse entirely and worked
+    only because a keyboard shortcut happened to exist. Nothing errored and
+    nothing looked obviously broken — it read as a design choice. Both tab
+    strips now scroll with `overflow-x-auto` and non-shrinking buttons.
+    **Anywhere a horizontal list of controls can exceed its container, it must
+    scroll; a control that is merely invisible is a control that is gone.**
+
 ---
 
 ## Known gaps, in the order I'd tackle them
@@ -953,7 +1006,7 @@ not at next sign-in, because `is_active` is already checked by
    requirements file was correct and the suite passed locally. Keep CI installing
    from the requirements file — do not reintroduce an inline package list.
 
-Related: **`DEX_AUTH_REQUIRED` was silently ignored** because pydantic-settings
+Related: **`LEGEND_AUTH_REQUIRED` was silently ignored** because pydantic-settings
 had no env prefix — asking for auth produced none. Auth settings now accept both
 prefixed and bare names via `AliasChoices`. Any new security setting must do the
 same.
@@ -978,9 +1031,9 @@ gap between "runs correctly" and "safe to put in front of strangers" is
 - **Infrastructure**: a domain, TLS termination, a paid market-data key
   (Yahoo's keyless rate limit will not survive real traffic), SMTP for
   password reset emails, backups, monitoring. See `docs/TRADING_TERMINAL.md`'s
-  "Deployment" section for the technical checklist (`DEX_SECRET_KEY`,
-  `DEX_ALLOW_SIGNUP=false` after the admin account exists, `CORS_ORIGINS`,
-  `DEX_TRUST_PROXY_HEADERS` only behind a real proxy).
+  "Deployment" section for the technical checklist (`LEGEND_SECRET_KEY`,
+  `LEGEND_ALLOW_SIGNUP=false` after the admin account exists, `CORS_ORIGINS`,
+  `LEGEND_TRUST_PROXY_HEADERS` only behind a real proxy).
 - **If "app" means an app-store submission** (iOS/Android/Electron
   distribution), each store has its own review process for financial apps,
   separate from anything in this codebase.
@@ -997,7 +1050,7 @@ building, not after.
 3. Connect an Alpaca **paper** key pair and place a real order through
    `broker_paper` mode. Every guardrail is unit-tested and the UI is browser-
    verified, but no order has been sent to Alpaca itself from here — that needs
-   credentials. Do this before ever setting `DEX_ENABLE_LIVE_TRADING`.
+   credentials. Do this before ever setting `LEGEND_ENABLE_LIVE_TRADING`.
 4. Decide whether to mark PR #1 ready for review, or keep stacking on the branch.
 5. Then pick from the gaps above.
 

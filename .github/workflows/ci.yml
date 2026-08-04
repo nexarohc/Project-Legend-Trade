@@ -60,19 +60,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build the deployment image
-        run: docker build -t dex-trading-terminal:ci .
+        run: docker build -t legend-trade:ci .
       - name: Verify the container serves /health
         run: |
-          docker run -d --name dex-ci -p 8000:8000 dex-trading-terminal:ci
+          docker run -d --name legend-ci -p 8000:8000 legend-trade:ci
           for i in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:8000/health; then
               echo "healthy"
-              docker rm -f dex-ci
+              docker rm -f legend-ci
               exit 0
             fi
             sleep 2
           done
           echo "container did not become healthy"
-          docker logs dex-ci
-          docker rm -f dex-ci
+          docker logs legend-ci
+          docker rm -f legend-ci
           exit 1

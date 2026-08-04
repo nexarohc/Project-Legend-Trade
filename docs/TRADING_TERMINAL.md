@@ -1,4 +1,4 @@
-# Dex Trading Terminal
+# Legend Trade
 
 An institutional-style market analysis platform: real-time charts, deterministic
 chart analysis, strategy generation, backtesting with an adversarial audit, and
@@ -520,7 +520,7 @@ No single mistake gets to real money:
    published, multi-user deployment cannot let every account touch them. A
    single-operator desktop instance is unaffected, since the implicit local
    account is always admin.
-1. **A server-side flag.** `DEX_ENABLE_LIVE_TRADING=true` in the environment,
+1. **A server-side flag.** `LEGEND_ENABLE_LIVE_TRADING=true` in the environment,
    plus a restart. No API request, database row or UI click can set it — that
    asymmetry is the point.
 2. **An explicit mode switch** to `live` (`POST /execution/mode`).
@@ -690,7 +690,7 @@ means anything on your data.
 
 ## Authentication
 
-Enforcement is decided by `DEX_AUTH_REQUIRED`:
+Enforcement is decided by `LEGEND_AUTH_REQUIRED`:
 
 | Mode | Behaviour |
 |---|---|
@@ -705,7 +705,7 @@ distinguishes the two better than a flag someone forgets to flip — and the
 choice is logged at startup either way, so it is never a surprise.
 
 The first account created is the administrator. Further signups need
-`DEX_ALLOW_SIGNUP=true`, so a self-hosted instance doesn't quietly become a
+`LEGEND_ALLOW_SIGNUP=true`, so a self-hosted instance doesn't quietly become a
 public service.
 
 ### What it does
@@ -782,7 +782,7 @@ token:
 
 ```yaml
 scrape_configs:
-  - job_name: dex
+  - job_name: legend-trade
     authorization:
       credentials: <an admin access token>
     static_configs:
@@ -935,7 +935,7 @@ about the account's security state changes.
   the buckets to Redis before running at that scale.
 - **The signing secret is generated and stored on disk** when unset, so restarts
   don't sign everyone out. That's right for a desktop app and wrong for a fleet:
-  set `DEX_SECRET_KEY` explicitly for multi-instance deployments, or tokens from
+  set `LEGEND_SECRET_KEY` explicitly for multi-instance deployments, or tokens from
   one instance will be rejected by the others.
 
 ### Endpoints
@@ -1118,9 +1118,9 @@ Before exposing this to the internet:
 2. Put a TLS-terminating reverse proxy in front of it.
 3. Restrict `CORS_ORIGINS` to your actual origin.
 4. Authentication turns on automatically when you bind to a non-loopback
-   address. Set `DEX_SECRET_KEY` explicitly, and leave `DEX_ALLOW_SIGNUP=false`
+   address. Set `LEGEND_SECRET_KEY` explicitly, and leave `LEGEND_ALLOW_SIGNUP=false`
    after creating your account.
-5. Set `DEX_TRUST_PROXY_HEADERS=true` **only** behind a proxy you control, so
+5. Set `LEGEND_TRUST_PROXY_HEADERS=true` **only** behind a proxy you control, so
    rate limiting keys on the real client IP.
 6. If you run more than one worker, set `REDIS_URL` — otherwise each worker
    keeps its own rate-limit buckets and the effective limit multiplies by the
