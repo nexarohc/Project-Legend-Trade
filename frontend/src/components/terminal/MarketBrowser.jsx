@@ -187,7 +187,12 @@ export default function MarketBrowser({ onSelectSymbol }) {
                   <span className="text-[11px] font-mono font-semibold text-term-text">{r.symbol}</span>
                   <span className="text-[9px] uppercase text-term-dim shrink-0">{r.asset_class}</span>
                 </div>
-                <p className="text-[9px] text-term-muted truncate">{r.name}</p>
+                {/* Same ticker, different company, different country — the name
+                    and country are the only things telling these rows apart. */}
+                <p className="text-[9px] text-term-muted truncate">
+                  {r.name}
+                  {r.country ? <span className="text-term-dim"> · {r.country}</span> : null}
+                </p>
               </button>
             ))}
           </div>

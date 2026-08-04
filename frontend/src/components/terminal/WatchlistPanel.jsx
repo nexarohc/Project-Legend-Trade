@@ -155,7 +155,14 @@ function Watchlist({ symbol, onSelectSymbol }) {
                     {r.asset_class}
                   </span>
                 </div>
-                <p className="text-[9px] text-term-muted truncate">{r.name}</p>
+                {/* The company name and country are what separate four rows all
+                    reading SERV — a US robotics company, a Pakistani footwear
+                    maker, a Swedish listing and a Canadian one. Without them the
+                    list is four identical buttons. */}
+                <p className="text-[9px] text-term-muted truncate">
+                  {r.name}
+                  {r.country ? <span className="text-term-dim"> · {r.country}</span> : null}
+                </p>
               </button>
             ))}
           </div>

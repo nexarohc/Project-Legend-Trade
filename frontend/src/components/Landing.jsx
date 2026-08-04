@@ -411,6 +411,10 @@ export default function Landing({ onGetStarted }) {
                   "No free vendor serves real strikes, open interest or implied volatility — so it prices contracts you specify rather than inventing a chain.",
                 ],
                 [
+                  "The keyless equity source rate-limits hard",
+                  "Yahoo is per-IP and can refuse a whole network outright — measured, not theorised. Crypto needs no key ever; for stocks, plan on a free Twelve Data key.",
+                ],
+                [
                   "Futures have no streaming path",
                   "Genuinely free real-time futures data does not exist as a category, so futures charts poll.",
                 ],

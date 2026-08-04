@@ -742,6 +742,46 @@ These were deliberate. Changing them is fine, but do it knowingly.
     **Anywhere a horizontal list of controls can exceed its container, it must
     scroll; a control that is merely invisible is a control that is gone.**
 
+40. **Twelve Data takes the exchange as a parameter, and a wrong one is a hard
+    miss that must not be papered over.** The platform speaks TradingView-style
+    `NASDAQ:SERV` everywhere — it is what the Markets browser emits and what a
+    user types. Twelve Data wants `symbol=SERV&exchange=NASDAQ` and answers the
+    colon form with an HTTP 404, so a keyed instance could chart a bare ticker
+    but not the exact symbol its own UI produced.
+
+    The tempting fix — on 404, retry without the exchange — is deliberately
+    **not** taken. Two companies can share a ticker across exchanges, so
+    dropping the qualifier could silently chart the wrong instrument. A visible
+    failure beats a confident wrong answer, so the 404 is surfaced with a
+    message naming the exchange as the likely cause instead. `NASDAQ:IONQ`
+    failing is *correct*: IONQ is NYSE-listed, and `NYSE:IONQ` works.
+
+    The old message said "Twelve Data /time_series unreachable", which sent the
+    reader hunting a network fault for what was an unknown symbol. **A 404 is
+    not an outage. Do not fold the two together in an error string.**
+
+    A second pass caught the first fix being wrong in the same way. It replaced
+    the vendor's 404 body with a guess — "no SERV listed on PSX" — but `PSX:SERV`
+    *is* listed there; the body said "available starting with the Pro or Venture
+    plan". A plan restriction and a bad ticker are different problems with
+    different fixes (a billing page vs. a symbol), and the vendor already
+    distinguishes them. **The vendor's own sentence wins whenever there is one;
+    only invent a message when the body has none.**
+
+41. **A ticker is not an instrument, so search must return something chartable.**
+    Searching `SERV` returns four Common Stocks: a US robotics company, a
+    Pakistani footwear maker, a Swedish listing and a Canadian one. As bare
+    tickers those are four identical rows, and clicking any of them charts
+    whatever the vendor defaults to. Results are now qualified with their
+    exchange (`NASDAQ:SERV`, `PSX:SERV`), which `_split_exchange` turns back
+    into an exact lookup, and `SymbolInfo` carries `exchange` and `country` so
+    the UI can label the rows.
+
+    Two halves, both required: the qualified symbol makes the pick *correct*,
+    and the visible country makes it *possible*. Shipping only the first would
+    have left a list a person still cannot choose from. **If a search result
+    cannot be distinguished from the one below it, the search is not done.**
+
 ---
 
 ## Known gaps, in the order I'd tackle them
@@ -1042,17 +1082,34 @@ None of these are blocked on more code from this session — they're
 operator/business decisions that need to happen before or alongside further
 building, not after.
 
+## The keyless equity path is not dependable — measured, not assumed
+
+The long-standing action item "confirm Yahoo serves equities from your own IP"
+is now **done, and the answer is no.** From this environment every non-crypto
+symbol failed on the keyless path — `NASDAQ:SERV`, `AAPL`, `NVDA`, `IONQ`,
+`^RUT`, `EURUSD`, `ES=F` — all with the same cause:
+
+    Yahoo Finance is rate-limiting this network and did not recover after 3 retries.
+
+Not a symbol problem, not a parsing problem. Yahoo rate-limits per IP and can
+refuse an entire network outright. With a Twelve Data key configured, every one
+of those symbols served real data immediately.
+
+**What this changes:** "works with no API key at all" is true for crypto and
+should be stated that way. For equities it is a best-effort fallback that a
+shared IP, a cloud host or a VPN can kill entirely. The landing page's "What it
+does not do" section now says so. Do not present the keyless equity path as a
+supported configuration for anything with real users.
+
 ## Immediate next actions on resume
 
-1. Check CI on the branch head after the execution commit.
-2. Run the terminal locally and confirm Yahoo serves equities from your own IP —
-   chart `NASDAQ:SERV`. This is the one thing never verified outside CI.
-3. Connect an Alpaca **paper** key pair and place a real order through
+1. Connect an Alpaca **paper** key pair and place a real order through
    `broker_paper` mode. Every guardrail is unit-tested and the UI is browser-
    verified, but no order has been sent to Alpaca itself from here — that needs
    credentials. Do this before ever setting `LEGEND_ENABLE_LIVE_TRADING`.
-4. Decide whether to mark PR #1 ready for review, or keep stacking on the branch.
-5. Then pick from the gaps above.
+2. Decide whether to mark PR #1 ready for review, or keep stacking on the branch.
+3. Stripe / subscriptions — the user deferred this to last, deliberately.
+4. Then pick from the gaps above.
 
 ## Running it
 

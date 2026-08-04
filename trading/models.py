@@ -254,6 +254,13 @@ class SymbolInfo:
     provider: str
     tick_size: float = 0.01
     quote_currency: str = "USD"
+    # Where the instrument is listed, when the provider tells us. Optional
+    # because the keyless providers do not report it, but worth surfacing
+    # wherever it exists: a ticker alone is not a unique instrument. "SERV" is
+    # four different companies in four countries, and picking the wrong one is
+    # not a near miss — it is a chart of an unrelated business.
+    exchange: str = ""
+    country: str = ""
 
     def to_dict(self) -> dict:
         return {
@@ -263,6 +270,8 @@ class SymbolInfo:
             "provider": self.provider,
             "tick_size": self.tick_size,
             "quote_currency": self.quote_currency,
+            "exchange": self.exchange,
+            "country": self.country,
         }
 
 
