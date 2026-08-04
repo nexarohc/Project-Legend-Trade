@@ -1,0 +1,28 @@
+# Server-only dependencies for the trading terminal.
+#
+# Deliberately excludes the desktop-assistant extras (playwright, pyautogui,
+# pyaudio, faster-whisper, pvporcupine): they need a display, a microphone and
+# hundreds of megabytes of models that a headless container has no use for.
+# Install backend/requirements.txt instead when running the full desktop app.
+
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+pydantic-settings==2.5.2
+email-validator==2.2.0
+sqlalchemy==2.0.35
+python-multipart==0.0.9
+
+# Market data: httpx for REST, websockets for the exchange streams.
+httpx==0.27.2
+websockets==12.0
+
+# LLM narrative layer (optional at runtime — the platform degrades gracefully
+# to deterministic output when no key is configured).
+anthropic==0.34.2
+
+# Shared rate-limit buckets across workers. Only used when REDIS_URL is set;
+# without it the in-process limiter runs and this is never imported. Included
+# rather than left to the operator so the feature works the moment it is
+# configured, instead of failing at startup with an install instruction.
+redis==5.0.8

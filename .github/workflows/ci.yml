@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    # Redis exists here only so the Redis-backed rate limiter is actually
+    # exercised rather than skipped. Nothing else in the suite touches it, and
+    # if this service fails to start those tests skip instead of failing —
+    # they are written to skip when no Redis is reachable.
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install backend dependencies
+        # Install from the requirements file rather than a list duplicated here.
+        # A hand-maintained copy drifts: adding email-validator to requirements
+        # left CI installing the old set, and the whole API test module errored
+        # out on import while every requirements file was correct.
+        run: |
+          pip install -r backend/requirements-server.txt
+          pip install pytest
+      - name: Run tests
+        # The trading tests run against generated series and a stub provider, so
+        # CI never depends on an exchange being reachable or on a rate limit.
+        env:
+          LEGEND_TEST_REDIS_URL: redis://localhost:6379/15
+        run: python -m pytest tests/ -v
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install
+      - run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the deployment image
+        run: docker build -t dex-trading-terminal:ci .
+      - name: Verify the container serves /health
+        run: |
+          docker run -d --name dex-ci -p 8000:8000 dex-trading-terminal:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/health; then
+              echo "healthy"
+              docker rm -f dex-ci
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "container did not become healthy"
+          docker logs dex-ci
+          docker rm -f dex-ci
+          exit 1

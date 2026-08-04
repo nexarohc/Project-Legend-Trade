@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  height: 100%;
+}
+
+/* `min-height`, not `height`. The terminal wants a fixed-height shell so each
+   panel scrolls independently, but the landing page is an ordinary long
+   document and must scroll the *page* — anchor links, browser scroll
+   restoration and the mobile URL bar all key off the document scroller, and
+   trapping the content in an inner div breaks all three. Screens that need the
+   fixed shell ask for `h-screen` themselves. */
+#root {
+  min-height: 100%;
+}
+
+/* Smooth scrolling for the landing page's in-page anchors. The
+   prefers-reduced-motion block below overrides this back to `auto`. */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-brand-bg text-slate-100 antialiased font-sans;
+  /* Slightly tighter than Inter's default; at display sizes the stock
+     tracking reads loose and amateurish. */
+  letter-spacing: -0.011em;
+}
+
+/* Tabular figures everywhere a number can change in place. Proportional
+   digits make a ticking price jitter sideways as the glyph widths change,
+   which reads as instability on a trading surface. */
+.font-mono,
+[class*="tabular"] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Respect a user who has asked the OS for less motion: the landing page's
+   drift and fade are decoration, and decoration is not worth making someone
+   ill. Transitions stay, they just stop moving things around. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-700 rounded-full;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@layer components {
+  /* Terminal controls. Small, dense and quiet — a trading surface should
+     spend its visual weight on the market, not on its own buttons. */
+  .btn-term {
+    @apply px-2 py-1 rounded border border-term-border bg-term-raised text-term-muted
+           text-xs font-medium transition-colors
+           hover:text-term-text hover:border-term-dim
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .btn-term-primary {
+    @apply px-2 py-1 rounded bg-brand-accent text-white text-xs font-medium
+           transition-opacity hover:opacity-90
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  /* Scroll without a visible bar. Used on the terminal's tab strips, where a
+     6px scrollbar under a 28px-tall row of tabs eats a fifth of the row and
+     looks broken. The content still scrolls by wheel, trackpad and keyboard —
+     this hides the indicator, not the ability. */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* The chart library draws its own crosshair; suppress the OS one over it so
+   the two never appear at once. */
+.tv-lightweight-charts {
+  cursor: crosshair;
+}

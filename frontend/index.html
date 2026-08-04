@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Legend Trade — evidence-first market analysis</title>
+    <meta
+      name="description"
+      content="An institutional-grade trading terminal: real-time charts, deterministic market analysis, backtesting with an adversarial audit, and a guardrail layer whose only job is to say no."
+    />
+
+    <!-- Preconnect so the display face is not what blocks first paint. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      Three families, each with one job:
+        Space Grotesk  — display. Technical and slightly narrow; gives headlines character.
+        Inter          — UI and body. The workhorse: nothing clever, very legible small.
+        JetBrains Mono — numerals. Tabular figures so prices don't jitter as they tick.
+    -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="dark">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
