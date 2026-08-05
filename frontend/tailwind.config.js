@@ -66,6 +66,34 @@ export default {
           "0%": { transform: "scaleY(0.15)" },
           "100%": { transform: "scaleY(1)" },
         },
+        // A light bar sweeping down a panel edge, like a sensor pass. Used
+        // sparingly — one or two on screen at a time, or it stops reading as
+        // instrumentation and starts reading as a screensaver.
+        scan: {
+          "0%": { transform: "translateY(-100%)", opacity: "0" },
+          "10%, 90%": { opacity: "1" },
+          "100%": { transform: "translateY(1000%)", opacity: "0" },
+        },
+        // Rotates a conic-gradient border. `--angle` is a registered property
+        // (see index.css) because plain custom properties cannot be animated.
+        "spin-border": {
+          to: { "--angle": "360deg" },
+        },
+        "glow-pulse": {
+          "0%, 100%": { opacity: "0.35" },
+          "50%": { opacity: "0.75" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
+        // The readout blink on a live figure. Deliberately brief: a value that
+        // flashes constantly is noise, one that flashes on change is a signal.
+        flare: {
+          "0%": { opacity: "0", transform: "scaleX(0.2)" },
+          "40%": { opacity: "1" },
+          "100%": { opacity: "0", transform: "scaleX(1)" },
+        },
       },
       animation: {
         "fade-up": "fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both",
@@ -73,8 +101,14 @@ export default {
         drift: "drift 14s ease-in-out infinite",
         "drift-slow": "drift 22s ease-in-out infinite",
         ticker: "ticker 40s linear infinite",
+        "ticker-slow": "ticker 70s linear infinite",
         "pulse-dot": "pulse-dot 1.8s ease-in-out infinite",
         "grow-bar": "grow-bar 0.8s cubic-bezier(0.16, 1, 0.3, 1) both",
+        scan: "scan 7s linear infinite",
+        "spin-border": "spin-border 6s linear infinite",
+        "glow-pulse": "glow-pulse 4s ease-in-out infinite",
+        float: "float 6s ease-in-out infinite",
+        flare: "flare 1.1s ease-out",
       },
     },
   },
