@@ -11,6 +11,25 @@ export default {
           accent: "#7c5cff",
           accent2: "#22d3c7",
         },
+        // Marketing-surface palette. Light, enterprise, no neon anywhere — a
+        // deliberately different register from the terminal below, which is a
+        // dense dark instrument. A trading application is dark because a trader
+        // stares at it for eight hours; a site that has to earn trust in eight
+        // seconds is not the same problem and should not borrow that answer.
+        ent: {
+          navy: "#0F172A",
+          slate: "#1E293B",
+          blue: "#2563EB",
+          "blue-light": "#3B82F6",
+          sky: "#38BDF8",
+          surface: "#F8FAFC",
+          border: "#E2E8F0",
+          ink: "#111827",
+          muted: "#64748B",
+          success: "#10B981",
+          warning: "#F59E0B",
+          error: "#EF4444",
+        },
         // Terminal palette. Deliberately desaturated so the only saturated
         // colour on screen is price direction — the eye should go straight to
         // the market, not to the chrome.
@@ -94,6 +113,18 @@ export default {
           "40%": { opacity: "1" },
           "100%": { opacity: "0", transform: "scaleX(1)" },
         },
+        // A pulse travelling along an architecture connector. `stroke-dashoffset`
+        // is the one non-compositor property used anywhere here; it is confined
+        // to a handful of short SVG paths in a single diagram, which is well
+        // inside what a browser handles without dropping frames.
+        "flow-down": {
+          "0%": { strokeDashoffset: "28" },
+          "100%": { strokeDashoffset: "0" },
+        },
+        "sheen": {
+          "0%": { transform: "translateX(-120%)" },
+          "100%": { transform: "translateX(220%)" },
+        },
       },
       animation: {
         "fade-up": "fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both",
@@ -109,6 +140,8 @@ export default {
         "glow-pulse": "glow-pulse 4s ease-in-out infinite",
         float: "float 6s ease-in-out infinite",
         flare: "flare 1.1s ease-out",
+        "flow-down": "flow-down 1.6s linear infinite",
+        sheen: "sheen 1.1s ease-out",
       },
     },
   },
