@@ -95,6 +95,16 @@ body {
   /* Slightly tighter than Inter's default; at display sizes the stock
      tracking reads loose and amateurish. */
   letter-spacing: -0.011em;
+
+  /* Inter Variable ships an optical-size axis. Letting the browser drive it
+     means small text gets slightly more open spacing and larger apertures while
+     display sizes tighten up — the difference between type that looks set and
+     type that looks merely scaled. Ignored by static builds of the face. */
+  font-optical-sizing: auto;
+  /* Contextual alternates: Inter's default `calt` handles pairs like "->" and
+     fixes spacing around punctuation. On by default in most engines, stated
+     here so a future `font-feature-settings` rule does not silently drop it. */
+  font-feature-settings: "calt" 1;
 }
 
 /* Tabular figures everywhere a number can change in place. Proportional

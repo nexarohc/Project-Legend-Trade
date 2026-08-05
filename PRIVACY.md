@@ -66,6 +66,12 @@ retention is set by the operator — see [Retention](#6-how-long-we-keep-it).
   scripts of any kind.** The frontend loads no external JavaScript. This is
   verifiable: search the repository for `gtag`, `segment`, `mixpanel`,
   `posthog`, `sentry`, `fbq` — there are no matches.
+- **No third-party requests at all, including fonts.** Typefaces are bundled
+  with the application rather than fetched from a font CDN. A hosted font
+  stylesheet discloses your IP address, and the page you requested, to that host
+  on every load; several European regulators have treated exactly that as a
+  transfer requiring a legal basis. Serving the files ourselves removes the
+  question. Once the page has loaded, your browser talks only to this service.
 - **No cookies.** Your session lives in your browser's `localStorage` under the
   keys `legend.access_token`, `legend.refresh_token` and `legend.user`. Signing
   out deletes them.

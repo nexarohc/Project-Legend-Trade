@@ -409,7 +409,7 @@ export default function Landing({ onGetStarted }) {
       </section>
 
       {/* ---------- platform / domains ---------- */}
-      <section id="platform" className="mx-auto max-w-7xl px-6 py-24 lg:px-8 lg:py-28">
+      <section id="platform" className="scroll-mt-24 mx-auto max-w-7xl px-6 py-24 lg:px-8 lg:py-28">
         <SectionHead eyebrow="Platform" title="Nine domains, one coherent system">
           Each domain is a real module in the codebase with its own tests and its own
           documented limitations. Nothing below is a roadmap item described in the present
@@ -451,7 +451,7 @@ export default function Landing({ onGetStarted }) {
       </section>
 
       {/* ---------- architecture ---------- */}
-      <section id="architecture" className="border-y border-ent-border bg-ent-surface">
+      <section id="architecture" className="scroll-mt-24 border-y border-ent-border bg-ent-surface">
         <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8 lg:py-28">
           {/* `min-w-0` on both columns is load-bearing, not tidiness: a grid item
               defaults to `min-width: auto`, so it refuses to shrink below its
@@ -491,7 +491,7 @@ if not decision.allowed:
       </section>
 
       {/* ---------- principles ---------- */}
-      <section id="principles" className="mx-auto max-w-7xl px-6 py-24 lg:px-8 lg:py-28">
+      <section id="principles" className="scroll-mt-24 mx-auto max-w-7xl px-6 py-24 lg:px-8 lg:py-28">
         <SectionHead eyebrow="Principles" title="Rules the codebase is held to" center>
           These are not aspirations on a slide. Each one is enforced somewhere specific, and
           the reasoning is recorded so it does not get quietly reversed later.
@@ -515,7 +515,7 @@ if not decision.allowed:
       </section>
 
       {/* ---------- documentation ---------- */}
-      <section id="docs" className="border-y border-ent-border bg-ent-surface">
+      <section id="docs" className="scroll-mt-24 border-y border-ent-border bg-ent-surface">
         <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8 lg:py-28">
           <SectionHead eyebrow="Documentation" title="Written to be read, not to exist">
             Every decision worth not re-litigating is recorded with its reasoning, and every
@@ -554,7 +554,7 @@ if not decision.allowed:
       </section>
 
       {/* ---------- disclosure ---------- */}
-      <section id="disclosure" className="mx-auto max-w-7xl px-6 py-24 lg:px-8 lg:py-28">
+      <section id="disclosure" className="scroll-mt-24 mx-auto max-w-7xl px-6 py-24 lg:px-8 lg:py-28">
         <div className="grid gap-14 lg:grid-cols-[0.9fr_1.1fr]">
           <SectionHead eyebrow="Disclosure" title="What this platform does not do">
             A platform that only advertises its strengths is telling you half the story. On a

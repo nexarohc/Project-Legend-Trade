@@ -49,13 +49,22 @@ export default {
         },
       },
       fontFamily: {
-        // `sans` was never defined before, so every non-mono surface fell back
-        // to the browser default — the single biggest reason the UI looked
-        // unfinished. Inter is the workhorse; Space Grotesk carries display
-        // type only.
-        sans: ["Inter", "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
-        display: ["'Space Grotesk'", "Inter", "system-ui", "sans-serif"],
-        mono: ["'JetBrains Mono'", "'SF Mono'", "Menlo", "Consolas", "monospace"],
+        // The *variable* packages register under "Inter Variable" and "JetBrains
+        // Mono Variable", not under the plain family names. Listing only "Inter"
+        // here would match nothing and fall through to system-ui — silently, and
+        // looking merely bland rather than broken, which is how the original
+        // font problem survived a code review and two rounds of screenshots.
+        // The plain names stay as the next candidate so a static build of either
+        // family also works.
+        sans: [
+          "'Inter Variable'", "Inter",
+          "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif",
+        ],
+        display: ["'Space Grotesk'", "'Inter Variable'", "Inter", "system-ui", "sans-serif"],
+        mono: [
+          "'JetBrains Mono Variable'", "'JetBrains Mono'",
+          "'SF Mono'", "Menlo", "Consolas", "monospace",
+        ],
       },
       keyframes: {
         // Landing-page motion. Kept to opacity and transform only: those are
