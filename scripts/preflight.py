@@ -95,18 +95,41 @@ def check_connectivity(adapter) -> tuple[bool, dict]:
     return True, health
 
 
-def check_account(health: dict) -> tuple[bool, float]:
+def check_account(health: dict, mode: ExecutionMode) -> tuple[bool, float]:
     """Report account state. Returns (usable, equity)."""
     print("\n3. Account")
     account = health.get("account") or {}
     equity = float(account.get("equity") or 0.0)
+    is_paper = account.get("is_paper")
 
     line(TICK, f"account id      {account.get('account_id', '?')}")
     line(TICK, f"equity          {equity:,.2f} {account.get('currency', 'USD')}")
     line(TICK, f"buying power    {float(account.get('buying_power') or 0.0):,.2f}")
-    line(TICK, f"paper account   {account.get('is_paper')}")
+    line(TICK, f"paper account   {is_paper}")
 
     usable = True
+
+    # The accident this whole script exists to prevent: live credentials pasted
+    # into the paper slot. Adapters read separate variables per mode precisely so
+    # that cannot happen quietly, but nothing stops someone copying the wrong key
+    # pair into the right-looking name.
+    #
+    # The broker's own answer is the authority here — not the variable it came
+    # from, and not the shape of the key. If we asked for paper and the account
+    # says it is real, refuse and say so loudly, because the next step after a
+    # green preflight is placing an order.
+    if mode is ExecutionMode.BROKER_PAPER and is_paper is False:
+        line(CROSS, "these credentials belong to a REAL-MONEY account, not a paper one")
+        line(CROSS, "  the broker reported is_paper=false while running in broker_paper mode")
+        line(CROSS, "  check which key pair went into the paper environment variables")
+        usable = False
+
+    # The mirror case is worth a warning rather than a failure: paper keys in
+    # live mode cannot lose money, so it is a configuration mistake, not a
+    # hazard — but it does mean "live" is not live.
+    if mode is ExecutionMode.LIVE and is_paper is True:
+        line(WARN, "live mode is pointed at a PAPER account — no real order will be placed")
+
     if account.get("trading_blocked"):
         # Brokers halt accounts for margin and PDT breaches. An order will fail
         # for a reason invisible in the app, so surface it here.
@@ -214,7 +237,7 @@ def main() -> int:
         print("\nNOT READY — credentials are present but the broker did not accept them.")
         return 1
 
-    account_ok, equity = check_account(health)
+    account_ok, equity = check_account(health, mode)
     guardrails_ok = check_guardrails(mode, equity, args.symbol, args.quantity, args.price)
 
     if mode is ExecutionMode.LIVE and not guardrails.live_trading_enabled_on_instance():
