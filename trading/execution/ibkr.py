@@ -135,6 +135,15 @@ class IBKRAdapter(BrokerAdapter):
     def configured(self) -> bool:
         return bool(self.account_id)
 
+    def credential_env_names(self) -> tuple[str, ...]:
+        # IBKR has no API key: authentication lives in a separately-running,
+        # browser-authenticated Client Portal Gateway. The account id is the only
+        # thing read from the environment, so a "credentials present" check here
+        # says nothing about whether the gateway is actually logged in — that
+        # only shows up when a request is made.
+        account = "IBKR_LIVE_ACCOUNT_ID" if self.mode is ExecutionMode.LIVE else "IBKR_PAPER_ACCOUNT_ID"
+        return (account, "IBKR_GATEWAY_URL")
+
     def _request(self, method: str, path: str, **kwargs) -> dict | list:
         if not self.configured:
             variable = "IBKR_LIVE_ACCOUNT_ID" if self.mode is ExecutionMode.LIVE else "IBKR_PAPER_ACCOUNT_ID"

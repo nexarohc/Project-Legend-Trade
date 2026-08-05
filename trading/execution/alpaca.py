@@ -97,6 +97,11 @@ class AlpacaAdapter(BrokerAdapter):
     def configured(self) -> bool:
         return bool(self.key_id and self.secret_key)
 
+    def credential_env_names(self) -> tuple[str, ...]:
+        if self.mode is ExecutionMode.LIVE:
+            return ("ALPACA_LIVE_KEY_ID", "ALPACA_LIVE_SECRET_KEY")
+        return ("ALPACA_PAPER_KEY_ID", "ALPACA_PAPER_SECRET_KEY")
+
     @property
     def _headers(self) -> dict:
         return {

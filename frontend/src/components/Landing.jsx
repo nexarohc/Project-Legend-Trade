@@ -479,7 +479,31 @@ export default function Landing({ onGetStarted }) {
         <div className="mx-auto max-w-6xl px-6 py-8 flex flex-col sm:flex-row items-center
                         justify-between gap-4 text-xs text-slate-600">
           <span>Legend Trade — market analysis, not financial advice.</span>
-          <span>Paper trading by default. Live execution is off unless you turn it on.</span>
+          {/* Both documents are still drafts with unfilled placeholders and an
+              open regulatory question. They point at the repository rather than
+              at served pages on purpose: a hosted /privacy that reads as final
+              would imply a review that has not happened. Swap these for real
+              routes once the placeholders are filled and a lawyer has signed
+              off — see the "what still needs a lawyer" section in each. */}
+          <div className="flex items-center gap-5">
+            <a
+              className="hover:text-slate-300 transition-colors"
+              href="https://github.com/nexarohc/Project-Legend-Trade/blob/main/PRIVACY.md"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Privacy
+            </a>
+            <a
+              className="hover:text-slate-300 transition-colors"
+              href="https://github.com/nexarohc/Project-Legend-Trade/blob/main/TERMS.md"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Terms
+            </a>
+            <span>Paper trading by default.</span>
+          </div>
         </div>
       </footer>
     </div>

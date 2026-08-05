@@ -155,42 +155,42 @@ class Metrics:
     def render_prometheus(self) -> str:
         lines: list[str] = []
         with self._lock:
-            lines.append("# HELP dex_uptime_seconds Seconds since this process started.")
-            lines.append("# TYPE dex_uptime_seconds gauge")
-            lines.append(f"dex_uptime_seconds {time.time() - self._started_at:.3f}")
+            lines.append("# HELP legend_uptime_seconds Seconds since this process started.")
+            lines.append("# TYPE legend_uptime_seconds gauge")
+            lines.append(f"legend_uptime_seconds {time.time() - self._started_at:.3f}")
 
-            lines.append("# HELP dex_http_requests_total HTTP requests by method, route and status.")
-            lines.append("# TYPE dex_http_requests_total counter")
+            lines.append("# HELP legend_http_requests_total HTTP requests by method, route and status.")
+            lines.append("# TYPE legend_http_requests_total counter")
             for (method, route, status), count in sorted(self._requests.items()):
                 lines.append(
-                    f'dex_http_requests_total{{method="{_escape(method)}",'
+                    f'legend_http_requests_total{{method="{_escape(method)}",'
                     f'route="{_escape(route)}",status="{status}"}} {count}'
                 )
 
-            lines.append("# HELP dex_http_request_duration_seconds Request latency.")
-            lines.append("# TYPE dex_http_request_duration_seconds histogram")
+            lines.append("# HELP legend_http_request_duration_seconds Request latency.")
+            lines.append("# TYPE legend_http_request_duration_seconds histogram")
             for (method, route), buckets in sorted(self._latency_buckets.items()):
                 labels = f'method="{_escape(method)}",route="{_escape(route)}"'
                 for edge, count in zip(LATENCY_BUCKETS, buckets):
                     lines.append(
-                        f'dex_http_request_duration_seconds_bucket{{{labels},le="{edge}"}} {count}'
+                        f'legend_http_request_duration_seconds_bucket{{{labels},le="{edge}"}} {count}'
                     )
                 total = self._latency_count[(method, route)]
                 # +Inf must equal the observation count, or the histogram is
                 # malformed and every quantile computed from it is wrong.
                 lines.append(
-                    f'dex_http_request_duration_seconds_bucket{{{labels},le="+Inf"}} {total}'
+                    f'legend_http_request_duration_seconds_bucket{{{labels},le="+Inf"}} {total}'
                 )
                 lines.append(
-                    f'dex_http_request_duration_seconds_sum{{{labels}}} '
+                    f'legend_http_request_duration_seconds_sum{{{labels}}} '
                     f'{self._latency_sum[(method, route)]:.6f}'
                 )
-                lines.append(f'dex_http_request_duration_seconds_count{{{labels}}} {total}')
+                lines.append(f'legend_http_request_duration_seconds_count{{{labels}}} {total}')
 
-            lines.append("# HELP dex_rate_limited_total Requests refused by a rate limiter.")
-            lines.append("# TYPE dex_rate_limited_total counter")
+            lines.append("# HELP legend_rate_limited_total Requests refused by a rate limiter.")
+            lines.append("# TYPE legend_rate_limited_total counter")
             for limiter, count in sorted(self._rate_limited.items()):
-                lines.append(f'dex_rate_limited_total{{limiter="{_escape(limiter)}"}} {count}')
+                lines.append(f'legend_rate_limited_total{{limiter="{_escape(limiter)}"}} {count}')
 
         return "\n".join(lines) + "\n"
 

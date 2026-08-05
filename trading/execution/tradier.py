@@ -128,6 +128,11 @@ class TradierAdapter(BrokerAdapter):
     def configured(self) -> bool:
         return bool(self.token and self.account_id)
 
+    def credential_env_names(self) -> tuple[str, ...]:
+        if self.mode is ExecutionMode.LIVE:
+            return ("TRADIER_LIVE_TOKEN", "TRADIER_LIVE_ACCOUNT_ID")
+        return ("TRADIER_PAPER_TOKEN", "TRADIER_PAPER_ACCOUNT_ID")
+
     @property
     def _headers(self) -> dict:
         return {

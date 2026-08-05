@@ -1101,15 +1101,42 @@ shared IP, a cloud host or a VPN can kill entirely. The landing page's "What it
 does not do" section now says so. Do not present the keyless equity path as a
 supported configuration for anything with real users.
 
+## Pre-launch material now exists, with its limits stated
+
+- **`PRIVACY.md`** — written from an audit of `database/models.py` and every
+  outbound host in the codebase, not from boilerplate. Enumerates exactly what
+  is collected, confirms there are no cookies, no analytics and no third-party
+  scripts, and names each provider that receives anything. Placeholders in
+  `{{BRACES}}` must be filled before it is served.
+- **`TERMS.md`** — leads with the financial disclaimer, and states plainly that
+  no broker adapter has been verified against a live account.
+- **`docs/DEPLOYMENT.md`** — TLS and reverse proxy (Caddy and nginx, with the
+  WebSocket upgrade headers that break streaming when missing), systemd unit,
+  the worker/Redis interaction, backups, market-data reality, SMTP, monitoring,
+  and the broker-connection procedure.
+- **`scripts/backup.py`** — SQLite online backup with `PRAGMA integrity_check`.
+  A `cp` of a live SQLite file is not a backup.
+- **`scripts/preflight.py`** — checks credentials, connectivity, account state
+  and the guardrail verdict for a sample order, transmitting nothing.
+
+**Both legal documents carry the same unresolved question, and it is the
+highest-risk open item in this project:** whether providing trade setups and
+probabilities to the public is a regulated activity where you operate. A
+disclaimer saying "not financial advice" does not settle it — regulators look at
+what the service does. That needs a lawyer, not more code.
+
 ## Immediate next actions on resume
 
-1. Connect an Alpaca **paper** key pair and place a real order through
-   `broker_paper` mode. Every guardrail is unit-tested and the UI is browser-
-   verified, but no order has been sent to Alpaca itself from here — that needs
-   credentials. Do this before ever setting `LEGEND_ENABLE_LIVE_TRADING`.
-2. Decide whether to mark PR #1 ready for review, or keep stacking on the branch.
-3. Stripe / subscriptions — the user deferred this to last, deliberately.
-4. Then pick from the gaps above.
+1. Connect an Alpaca **paper** key pair, run `python scripts/preflight.py`, and
+   place one real order through `broker_paper` mode. Every guardrail is
+   unit-tested and preflight is verified against stubs including the refusal
+   paths, but **no order has ever been sent to Alpaca itself from here** — that
+   needs credentials. Do this before ever setting `LEGEND_ENABLE_LIVE_TRADING`.
+2. Fill the `{{PLACEHOLDER}}` values in `PRIVACY.md` and `TERMS.md`, and get the
+   regulatory question answered.
+3. Decide whether to mark PR #1 ready for review, or keep stacking on the branch.
+4. Stripe / subscriptions — deferred to last, deliberately.
+5. Then pick from the gaps above.
 
 ## Running it
 

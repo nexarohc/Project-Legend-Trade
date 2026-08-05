@@ -236,6 +236,18 @@ class BrokerAdapter(ABC):
     def configured(self) -> bool:
         """True when credentials for this mode are present."""
 
+    def credential_env_names(self) -> tuple[str, ...]:
+        """Which environment variables this adapter reads, for *this* mode.
+
+        Exists so a diagnostic can say "set ALPACA_PAPER_KEY_ID" rather than the
+        useless "not configured". The adapter is the only thing that knows its
+        own variable names, and each mode reads a different set — a duplicate
+        list kept anywhere else drifts the moment a broker or a mode is added.
+
+        **Names only. Never return values from here** — this output is printed.
+        """
+        return ()
+
     @abstractmethod
     def get_account(self) -> BrokerAccount:
         ...

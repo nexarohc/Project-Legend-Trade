@@ -101,7 +101,7 @@ def test_histogram_buckets_are_cumulative_and_end_at_the_observation_count():
     text = m.render_prometheus()
     buckets = {}
     for line in text.splitlines():
-        if line.startswith("dex_http_request_duration_seconds_bucket"):
+        if line.startswith("legend_http_request_duration_seconds_bucket"):
             edge = line.split('le="')[1].split('"')[0]
             buckets[edge] = int(line.rsplit(" ", 1)[1])
 
@@ -129,7 +129,7 @@ def test_rate_limited_requests_are_counted_separately():
     m.record_rate_limited("/auth/login")
     m.record_rate_limited("/auth/login")
     assert m.snapshot()["rate_limited"]["/auth/login"] == 2
-    assert 'dex_rate_limited_total{limiter="/auth/login"} 2' in m.render_prometheus()
+    assert 'legend_rate_limited_total{limiter="/auth/login"} 2' in m.render_prometheus()
 
 
 def test_label_values_are_escaped():
@@ -141,7 +141,7 @@ def test_label_values_are_escaped():
 
 def test_uptime_is_reported():
     assert Metrics().snapshot()["uptime_seconds"] >= 0
-    assert "dex_uptime_seconds" in Metrics().render_prometheus()
+    assert "legend_uptime_seconds" in Metrics().render_prometheus()
 
 
 # --- the endpoint, through the real app ----------------------------------------
@@ -173,7 +173,7 @@ def test_metrics_endpoint_serves_prometheus_text(client):
     response = client.get("/metrics")
     assert response.status_code == 200
     assert "text/plain" in response.headers["content-type"]
-    assert "# TYPE dex_http_requests_total counter" in response.text
+    assert "# TYPE legend_http_requests_total counter" in response.text
 
 
 def test_requests_are_recorded_by_route_template_not_raw_path(client):
