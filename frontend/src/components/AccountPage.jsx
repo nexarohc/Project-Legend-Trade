@@ -1,11 +1,12 @@
 import EmailVerification from "./EmailVerification.jsx";
 import MfaSettings from "./MfaSettings.jsx";
+import DataAndPrivacy from "./DataAndPrivacy.jsx";
 import AdminUsers from "./AdminUsers.jsx";
 
 /**
  * Everything about the account, and nothing about the market.
  *
- * The three children each fetch their own state and each decide for themselves
+ * Each child fetches its own state and decides for itself
  * whether they have anything to show — `AdminUsers` renders nothing at all for
  * a non-admin, so this page is the same component tree for every user and the
  * server's answer is what differs.
@@ -24,6 +25,7 @@ export default function AccountPage() {
 
       <EmailVerification />
       <MfaSettings />
+      <DataAndPrivacy />
       <AdminUsers />
     </div>
   );

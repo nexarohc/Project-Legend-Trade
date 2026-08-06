@@ -947,6 +947,8 @@ about the account's security state changes.
 | `POST /auth/login` | Exchange credentials for tokens |
 | `POST /auth/refresh` | New token pair from a refresh token |
 | `GET /auth/me` | The current account |
+| `GET /auth/me/export` | Everything stored about this account, as JSON. Credential material (password hash, TOTP secret, recovery-code hashes) is reported as present but withheld |
+| `POST /auth/me/delete` | Erase the account and every row keyed to it. Requires the password and the exact phrase `DELETE MY ACCOUNT`; refused for the last remaining admin. Irreversible |
 | `POST /auth/password` | Change password; revokes all sessions |
 | `POST /auth/password/forgot` | Request a reset link (always a generic response) |
 | `POST /auth/password/reset` | Complete a reset with the token from the link |

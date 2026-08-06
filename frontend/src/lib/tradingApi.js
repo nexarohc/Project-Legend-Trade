@@ -89,6 +89,9 @@ export const auth = {
   mfaVerify: (mfaToken, code) => post("/auth/mfa/verify", { mfa_token: mfaToken, code }),
   mfaDisable: (password) => post("/auth/mfa/disable", { password }),
 
+  exportMyData: () => request("/auth/me/export"),
+  deleteMyAccount: (password, confirm) => post("/auth/me/delete", { password, confirm }),
+
   // Admin-only: 403 for everyone else, so the UI hides these entirely.
   adminListUsers: (query = "") =>
     request(`/auth/admin/users${query ? `?query=${encodeURIComponent(query)}` : ""}`),

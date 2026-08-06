@@ -47,7 +47,13 @@ from app.dependencies import (
     secret_key,
 )
 from app.mailer import send_mail
-from app.ratelimit import email_verify_limiter, login_limiter, mfa_limiter, password_reset_limiter
+from app.ratelimit import (
+    client_key,
+    email_verify_limiter,
+    login_limiter,
+    mfa_limiter,
+    password_reset_limiter,
+)
 from app.security import (
     ACCESS_TOKEN_TTL,
     MFA_TOKEN_TTL,
@@ -61,7 +67,20 @@ from app.security import (
     verify_password,
 )
 from database.db import get_session
-from database.models import MfaRecoveryCode, User
+from database.models import (
+    AnalysisFeedback,
+    AnalysisRecord,
+    BacktestRecord,
+    ExecutionState,
+    MfaRecoveryCode,
+    OrderRecord,
+    PaperPosition,
+    PriceAlert,
+    StrategyRecord,
+    TradingWebhook,
+    User,
+    WatchlistItem,
+)
 
 logger = logging.getLogger("legend.users")
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -160,10 +179,10 @@ def _send_verification_email(user: User) -> None:
     token = create_token(user.id, secret_key(), "email_verify")
     link = f"{settings.frontend_url.rstrip('/')}/?verify_token={token}"
     body = (
-        f"Confirm this is your email address to finish setting up Dex:\n\n{link}\n\n"
+        f"Confirm this is your email address to finish setting up your Legend Trade account:\n\n{link}\n\n"
         "This link is valid for 24 hours. If you didn't create this account, ignore it."
     )
-    if not send_mail(user.email, "Verify your Dex email address", body):
+    if not send_mail(user.email, "Verify your Legend Trade email address", body):
         logger.info("verification link for user %s logged above (no SMTP configured)", user.id)
 
 
@@ -680,10 +699,10 @@ def forgot_password(request: ForgotPasswordRequest, http_request: Request,
 
         link = f"{settings.frontend_url.rstrip('/')}/?reset_token={token}"
         body = (
-            f"Use this link to reset your Dex password (expires in 15 minutes):\n\n{link}\n\n"
+            f"Use this link to reset your Legend Trade password (expires in 15 minutes):\n\n{link}\n\n"
             "If you did not request this, you can ignore this message."
         )
-        if not send_mail(user.email, "Reset your Dex password", body):
+        if not send_mail(user.email, "Reset your Legend Trade password", body):
             logger.info("password reset requested for user %s; link logged above (no SMTP configured)", user.id)
 
     return {
@@ -822,4 +841,181 @@ def rotate_webhook_url(user: User = Depends(current_user),
         "path": f"/trading/webhook/tradingview/{user.webhook_token}",
         "rotated": True,
         "note": "Update the URL in your TradingView alerts — the previous one no longer works.",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Subject access and erasure
+#
+# PRIVACY.md previously disclosed that neither of these existed and that an
+# access or erasure request meant the operator editing the database by hand.
+# That disclosure was accurate and is exactly why it needed closing: a policy
+# that documents a manual process is a policy that fails the first time two
+# requests arrive in the same week.
+#
+# Both endpoints derive the table list from `_USER_OWNED` rather than hard-coding
+# a sequence of queries, so a model added later with a `user_id` is a one-line
+# change here instead of a silent omission — the failure mode being data that
+# survives a deletion request, which is the worst possible bug in this area.
+# ---------------------------------------------------------------------------
+
+# Every table keyed to a user, with the label used in the export. Ordered so a
+# deletion removes children before the parent row.
+_USER_OWNED = [
+    ("mfa_recovery_codes", MfaRecoveryCode),
+    ("analyses", AnalysisRecord),
+    ("strategies", StrategyRecord),
+    ("backtests", BacktestRecord),
+    ("paper_positions", PaperPosition),
+    ("alerts", PriceAlert),
+    ("watchlist", WatchlistItem),
+    ("webhooks", TradingWebhook),
+    ("feedback", AnalysisFeedback),
+    ("orders", OrderRecord),
+    ("execution_state", ExecutionState),
+]
+
+
+# Column names whose *value* is never exported, whatever table they appear in.
+#
+# Dumping a row generically is what makes the export survive a schema change —
+# but it also means a credential column added to any user-owned table would be
+# swept into the response without anyone deciding it should be. So the exclusion
+# is by column name and applies everywhere, rather than being a special case
+# written next to the one table that needs it today (`mfa_recovery_codes`).
+#
+# The key is kept, with a marker for a value: hiding the column entirely would
+# misrepresent what is stored, and the point of a subject access request is to
+# tell you what is held, not to hand you the credentials themselves.
+_REDACTED_COLUMNS = frozenset({"code_hash", "password_hash", "mfa_secret", "secret"})
+_REDACTED = "[withheld — see not_included]"
+
+
+def _row_to_dict(row) -> dict:
+    """Serialise a model row without needing a schema per table.
+
+    Datetimes become ISO strings so the result is JSON-encodable; everything
+    else is already a scalar. Columns are read from the mapper rather than from
+    `__dict__`, which would also pick up SQLAlchemy's internal state.
+    """
+    out = {}
+    for column in row.__table__.columns:
+        if column.name in _REDACTED_COLUMNS:
+            out[column.name] = _REDACTED
+            continue
+        value = getattr(row, column.name)
+        out[column.name] = value.isoformat() if isinstance(value, dt.datetime) else value
+    return out
+
+
+class DeleteAccountRequest(BaseModel):
+    password: str
+    # Typing the phrase is the same friction the live-trading gate uses. A
+    # checkbox gets clicked reflexively; this does not.
+    confirm: str = Field(..., description='Must be exactly "DELETE MY ACCOUNT"')
+
+
+DELETE_CONFIRMATION_PHRASE = "DELETE MY ACCOUNT"
+
+
+@router.get("/me/export")
+def export_my_data(user: User = Depends(current_user),
+                   session: Session = Depends(get_session)):
+    """Everything this service holds about the authenticated account.
+
+    Credentials are deliberately excluded. A password hash and a TOTP secret are
+    technically "your data", but returning them turns one stolen access token
+    into a permanent offline attack on the password and a working second factor.
+    The export says which credentials exist without disclosing their values,
+    which is what a subject access request actually needs.
+    """
+    account = {
+        "id": user.id,
+        "email": user.email,
+        "display_name": user.display_name,
+        "is_active": user.is_active,
+        "is_admin": user.is_admin,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+        "last_login_at": user.last_login_at.isoformat() if user.last_login_at else None,
+        "email_verified_at": (
+            user.email_verified_at.isoformat() if user.email_verified_at else None
+        ),
+        "mfa_enabled": user.mfa_enabled,
+        "failed_login_count": user.failed_login_count,
+    }
+
+    data = {}
+    for label, model in _USER_OWNED:
+        rows = session.query(model).filter(model.user_id == user.id).all()
+        data[label] = [_row_to_dict(row) for row in rows]
+
+    return {
+        "exported_at": dt.datetime.utcnow().isoformat(),
+        "account": account,
+        "data": data,
+        "counts": {label: len(rows) for label, rows in data.items()},
+        "not_included": (
+            "Password hash, two-factor secret and recovery-code hashes are excluded on "
+            "purpose: disclosing them would convert a stolen session into a lasting "
+            "compromise. Their existence is reported above."
+        ),
+    }
+
+
+@router.post("/me/delete")
+def delete_my_account(request: DeleteAccountRequest,
+                      http_request: Request,
+                      user: User = Depends(current_user),
+                      session: Session = Depends(get_session)):
+    """Erase this account and everything keyed to it. Irreversible.
+
+    POST rather than DELETE because it carries a body: a password and a typed
+    phrase. Some proxies and client libraries drop the body of a DELETE, and a
+    deletion that silently loses its confirmation is not a safe thing to ship.
+
+    Re-authentication is required even though the caller already holds a valid
+    token — an unattended session should not be enough to destroy an account.
+    """
+    login_limiter.check(client_key(http_request))
+
+    if request.confirm != DELETE_CONFIRMATION_PHRASE:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f'Type "{DELETE_CONFIRMATION_PHRASE}" exactly to confirm.',
+        )
+
+    if not verify_password(request.password, user.password_hash):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Password is incorrect.")
+
+    # Losing the last administrator would leave an instance nobody can manage —
+    # no user administration, no MFA recovery, no metrics. Unlike the
+    # deactivation guard this one is genuinely reachable, because the caller is
+    # deleting themselves rather than someone else.
+    if user.is_admin and _active_admin_count(session, excluding=user.id) == 0:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "This is the only administrator. Promote another account first, or the "
+            "instance would be left with nobody able to administer it.",
+        )
+
+    removed = {}
+    for label, model in _USER_OWNED:
+        removed[label] = (
+            session.query(model).filter(model.user_id == user.id).delete(synchronize_session=False)
+        )
+
+    # Read both off the instance *before* the delete: once the transaction
+    # commits, the row is gone and SQLAlchemy will refuse to reload the expired
+    # attributes off a deleted object.
+    user_id, email = user.id, user.email
+    session.delete(user)
+    session.commit()
+
+    logger.info("account deleted: id=%s rows=%s", user_id, removed)
+    return {
+        "deleted": True,
+        "email": email,
+        "rows_removed": removed,
+        "note": "This account and its data are gone. Server logs may retain request "
+                "metadata for the retention period stated in the privacy policy.",
     }

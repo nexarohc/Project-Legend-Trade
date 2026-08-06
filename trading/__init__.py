@@ -1,4 +1,4 @@
-"""Dex trading platform — institutional-grade market analysis, strategy and backtesting.
+"""Legend Trade — institutional-grade market analysis, strategy and backtesting.
 
 Layered so each level depends only on the ones beneath it:
 

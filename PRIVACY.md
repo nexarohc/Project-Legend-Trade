@@ -140,19 +140,41 @@ Depending on where you live you may have the right to access, correct, delete
 or export your data, to object to processing, and to complain to a supervisory
 authority.
 
-**How to exercise them:** email {{PRIVACY_CONTACT_EMAIL}}.
+**Access and portability — self-service.** *Account → Your data → Download my
+data* returns a JSON file containing your account record and every row keyed to
+your user id: watchlists, alerts, analyses, strategies, backtests, simulated
+positions, orders, feedback, webhook payloads and execution settings. The same
+data is available directly at `GET /auth/me/export`.
 
-**Be honest with yourself about the current state:** there is no automated
-export or delete-account button in the software today. An administrator can
-disable an account, but fulfilling an access or erasure request currently means
-the operator doing it by hand against the database. If you are subject to GDPR
-and expect real request volume, build those endpoints before launch — see
-[What still needs a lawyer](#what-still-needs-a-lawyer).
+Two things are deliberately withheld from that file: your **password hash** and
+your **two-factor secret**, along with the hashes of your recovery codes. The
+export tells you they exist and when they were last used, but not their values —
+returning them would turn a single stolen session into a permanent offline
+attack on your password and a working second factor. If you want a different
+password, change it; if you want a different second factor, re-enrol it.
+
+**Erasure — self-service.** *Account → Your data → Delete my account* removes
+the account row and every row keyed to it, in one transaction. It requires your
+password and a typed confirmation phrase, and it is irreversible: there is no
+soft delete, no recovery window and no operator-side copy. The only refusal is
+if you are the sole remaining administrator, since that would leave the instance
+with nobody able to manage it — promote another account first.
+
+**What deletion does not reach:** server logs. Request metadata, including your
+IP address, persists in whatever log store the operator runs until its retention
+period expires — see [Retention](#6-how-long-we-keep-it). If email was sent to
+you, your mail provider's copy is also outside this service's control.
+
+**Anything else** — correction, objection, or a complaint to a supervisory
+authority: email {{PRIVACY_CONTACT_EMAIL}}.
 
 ## 6. How long we keep it
 
 Account and trading data are kept until the account is deleted. Deletion is
-currently a manual operator action.
+immediate and self-service — see [Your rights](#5-your-rights). Nothing expires
+on its own before then: an analysis you ran a year ago is still stored, because
+scoring old analyses against what price actually did is how the platform's
+probability estimates stay measurable.
 
 Server-log retention, including IP addresses, is whatever the operator's
 infrastructure is configured for. **{{OPERATOR_LEGAL_NAME}} must state a real
@@ -202,8 +224,10 @@ Before publishing, get a qualified professional to check:
 3. **International transfer mechanisms** — SCCs, adequacy, or otherwise.
 4. **Retention periods** — sections 6 and 9 have placeholders that must become
    real numbers.
-5. **Whether manual fulfilment of access/erasure requests is defensible** at
-   your expected scale, or whether the endpoints must exist first.
+5. **Whether the self-service export and deletion satisfy the request-handling
+   duties you are actually under** — the mechanism exists, but response
+   deadlines, identity-verification requirements and the records you must keep
+   of each request are legal questions this code does not answer.
 6. **Whether giving the public trade setups and probabilities triggers
    financial-services regulation** in your jurisdiction. This is the single
    highest-risk open question and it is not a privacy question — it is a

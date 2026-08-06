@@ -962,7 +962,7 @@ def test_registration_sends_a_verification_email(auth_client, monkeypatch):
 
     assert len(sent) == 1
     assert sent[0]["to"] == "fresh@example.com"
-    assert sent[0]["subject"] == "Verify your Dex email address"
+    assert sent[0]["subject"] == "Verify your Legend Trade email address"
     assert "verify_token=" in sent[0]["body"]
 
 
@@ -1220,3 +1220,231 @@ def test_deactivation_is_refused_to_a_non_admin(auth_client):
     response = auth_client.post(f"/auth/admin/users/{victim['user']['id']}/active",
                                 json={"active": False}, headers=_auth(member))
     assert response.status_code == 403
+
+
+# --- data export and account deletion ----------------------------------------
+#
+# These back a legal promise, not a feature request: the privacy policy says a
+# user can obtain and erase their data. The dangerous failure is silent — an
+# export that omits a table, or a deletion that leaves rows behind, both look
+# like success. So the seeding map below is asserted to cover `_USER_OWNED`
+# exactly: add a table to the export without seeding it here and this file
+# fails, rather than the omission shipping unnoticed.
+
+def _seed_every_user_table(db, user_id: int) -> dict:
+    """One row in every table the export and the deletion walk."""
+    from database.models import (
+        AnalysisFeedback,
+        AnalysisRecord,
+        BacktestRecord,
+        ExecutionState,
+        MfaRecoveryCode,
+        OrderRecord,
+        PaperPosition,
+        PriceAlert,
+        StrategyRecord,
+        TradingWebhook,
+        WatchlistItem,
+    )
+
+    rows = {
+        "mfa_recovery_codes": MfaRecoveryCode(user_id=user_id, code_hash="hashed-recovery-code"),
+        "analyses": AnalysisRecord(user_id=user_id, symbol="BTCUSDT", timeframe="1h",
+                                   price_at_analysis=100.0),
+        "strategies": StrategyRecord(user_id=user_id, name="mine", spec_json="{}"),
+        "backtests": BacktestRecord(user_id=user_id, strategy_name="mine"),
+        "paper_positions": PaperPosition(user_id=user_id, symbol="BTCUSDT", direction="long",
+                                         quantity=1.0, entry_price=100.0, stop_price=98.0),
+        "alerts": PriceAlert(user_id=user_id, symbol="BTCUSDT", condition="above", price=1.0),
+        "watchlist": WatchlistItem(user_id=user_id, symbol="BTCUSDT"),
+        "webhooks": TradingWebhook(user_id=user_id, raw_body="{}"),
+        "feedback": AnalysisFeedback(user_id=user_id, rating="useful"),
+        "orders": OrderRecord(user_id=user_id, mode="paper", symbol="BTCUSDT", side="buy",
+                              quantity=1.0),
+        "execution_state": ExecutionState(user_id=user_id),
+    }
+    for row in rows.values():
+        db.add(row)
+    db.commit()
+    return rows
+
+
+def test_the_seed_helper_covers_every_exported_table(session):
+    """The guard that keeps every test below honest as the schema grows.
+
+    Without this, adding a table to `_USER_OWNED` and forgetting to seed it here
+    would leave the export and deletion tests passing on a table that was never
+    populated — the exact blind spot they exist to close.
+    """
+    from app.routers.users import _USER_OWNED
+
+    seeded = _seed_every_user_table(session, user_id=4242)
+    assert set(seeded) == {label for label, _ in _USER_OWNED}
+
+
+def test_export_requires_authentication(auth_client):
+    assert auth_client.get("/auth/me/export").status_code == 401
+
+
+def test_export_returns_every_user_owned_table(auth_client, session):
+    from app.routers.users import _USER_OWNED
+
+    tokens = _register(auth_client, "exporter@example.com")
+    _seed_every_user_table(session, tokens["user"]["id"])
+
+    body = auth_client.get("/auth/me/export", headers=_auth(tokens)).json()
+
+    assert body["account"]["email"] == "exporter@example.com"
+    assert set(body["data"]) == {label for label, _ in _USER_OWNED}
+    # Every table seeded with exactly one row must come back with exactly one.
+    assert body["counts"] == {label: 1 for label, _ in _USER_OWNED}
+
+
+def test_export_never_discloses_credential_material(auth_client, session):
+    """A subject access request must not become an offline attack on the account.
+
+    The export is generated from the table columns, so a credential column added
+    later would be swept in automatically. This asserts against the serialised
+    body rather than against named fields, so it catches that.
+    """
+    from app import mfa
+    from database.models import User
+
+    tokens = _register(auth_client, "secrets@example.com")
+    user = session.query(User).filter(User.email == "secrets@example.com").first()
+    secret = mfa.generate_secret()
+    user.mfa_secret = secret
+    user.mfa_enabled = True
+    session.commit()
+    password_hash = user.password_hash
+    _seed_every_user_table(session, user.id)
+
+    response = auth_client.get("/auth/me/export", headers=_auth(tokens))
+    raw = response.text
+
+    assert password_hash not in raw
+    assert secret not in raw
+    assert "hashed-recovery-code" not in raw
+
+    body = response.json()
+    # The account block never carries credential fields at all.
+    assert "password_hash" not in body["account"]
+    assert "mfa_secret" not in body["account"]
+    # The recovery-code row is still reported — the user is entitled to know the
+    # codes exist and when they were used — but the hash itself is withheld.
+    code_row = body["data"]["mfa_recovery_codes"][0]
+    assert "used_at" in code_row
+    assert code_row["code_hash"] == "[withheld — see not_included]"
+    # It should still say the second factor exists — that fact is the user's.
+    assert body["account"]["mfa_enabled"] is True
+
+
+def test_export_is_scoped_to_the_caller(auth_client, session):
+    _register(auth_client, "export-admin@example.com")
+    alice = _register(auth_client, "export-alice@example.com")
+    bob = _register(auth_client, "export-bob@example.com")
+    _seed_every_user_table(session, bob["user"]["id"])
+
+    body = auth_client.get("/auth/me/export", headers=_auth(alice)).json()
+
+    assert body["account"]["email"] == "export-alice@example.com"
+    assert all(count == 0 for count in body["counts"].values())
+
+
+def test_delete_requires_the_exact_confirmation_phrase(auth_client):
+    _register(auth_client, "del-admin@example.com")
+    member = _register(auth_client, "del-typo@example.com")
+
+    for wrong in ("", "delete my account", "DELETE MY ACCOUNT ", "yes"):
+        response = auth_client.post("/auth/me/delete", headers=_auth(member),
+                                    json={"password": STRONG_PASSWORD, "confirm": wrong})
+        assert response.status_code == 400, wrong
+
+    assert auth_client.get("/auth/me", headers=_auth(member)).status_code == 200
+
+
+def test_delete_requires_the_current_password(auth_client):
+    _register(auth_client, "del-admin2@example.com")
+    member = _register(auth_client, "del-wrongpw@example.com")
+
+    response = auth_client.post(
+        "/auth/me/delete", headers=_auth(member),
+        json={"password": "not the password", "confirm": "DELETE MY ACCOUNT"})
+
+    assert response.status_code == 401
+    assert auth_client.get("/auth/me", headers=_auth(member)).status_code == 200
+
+
+def test_delete_requires_authentication(auth_client):
+    response = auth_client.post(
+        "/auth/me/delete", json={"password": STRONG_PASSWORD, "confirm": "DELETE MY ACCOUNT"})
+    assert response.status_code == 401
+
+
+def test_the_only_administrator_cannot_delete_themselves(auth_client):
+    """Otherwise the instance is left with nobody able to administer it."""
+    admin = _register(auth_client, "sole-admin@example.com")
+    _register(auth_client, "sole-member@example.com")   # a member is not a replacement
+
+    response = auth_client.post(
+        "/auth/me/delete", headers=_auth(admin),
+        json={"password": STRONG_PASSWORD, "confirm": "DELETE MY ACCOUNT"})
+
+    assert response.status_code == 409
+    assert auth_client.get("/auth/me", headers=_auth(admin)).status_code == 200
+
+
+def test_delete_removes_the_account_and_every_row_keyed_to_it(auth_client, session):
+    from app.routers.users import _USER_OWNED
+    from database.models import User
+
+    _register(auth_client, "erase-admin@example.com")
+    member = _register(auth_client, "erase-me@example.com")
+    user_id = member["user"]["id"]
+    _seed_every_user_table(session, user_id)
+
+    response = auth_client.post(
+        "/auth/me/delete", headers=_auth(member),
+        json={"password": STRONG_PASSWORD, "confirm": "DELETE MY ACCOUNT"})
+
+    assert response.status_code == 200, response.text
+    assert response.json()["rows_removed"] == {label: 1 for label, _ in _USER_OWNED}
+
+    session.expire_all()
+    assert session.query(User).filter(User.id == user_id).first() is None
+    for label, model in _USER_OWNED:
+        remaining = session.query(model).filter(model.user_id == user_id).count()
+        assert remaining == 0, f"{label} survived the deletion"
+
+
+def test_a_deleted_accounts_tokens_stop_working(auth_client):
+    _register(auth_client, "revoke-admin@example.com")
+    member = _register(auth_client, "revoke-me@example.com")
+
+    auth_client.post("/auth/me/delete", headers=_auth(member),
+                     json={"password": STRONG_PASSWORD, "confirm": "DELETE MY ACCOUNT"})
+
+    assert auth_client.get("/auth/me", headers=_auth(member)).status_code == 401
+    login = auth_client.post("/auth/login",
+                             json={"email": "revoke-me@example.com", "password": STRONG_PASSWORD})
+    assert login.status_code == 401
+
+
+def test_deleting_one_account_leaves_another_untouched(auth_client, session):
+    from app.routers.users import _USER_OWNED
+
+    _register(auth_client, "pair-admin@example.com")
+    alice = _register(auth_client, "pair-alice@example.com")
+    bob = _register(auth_client, "pair-bob@example.com")
+    _seed_every_user_table(session, alice["user"]["id"])
+    _seed_every_user_table(session, bob["user"]["id"])
+
+    assert auth_client.post(
+        "/auth/me/delete", headers=_auth(alice),
+        json={"password": STRONG_PASSWORD, "confirm": "DELETE MY ACCOUNT"}).status_code == 200
+
+    session.expire_all()
+    for label, model in _USER_OWNED:
+        kept = session.query(model).filter(model.user_id == bob["user"]["id"]).count()
+        assert kept == 1, f"deleting alice removed bob's {label}"
+    assert auth_client.get("/auth/me", headers=_auth(bob)).status_code == 200

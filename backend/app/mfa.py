@@ -92,7 +92,12 @@ def verify_totp(secret: str, code: str, timestamp: int | None = None,
     return matched
 
 
-def provisioning_uri(secret: str, account_email: str, issuer: str = "Dex") -> str:
+def provisioning_uri(secret: str, account_email: str, issuer: str = "Legend Trade") -> str:
+    # The issuer is the label the user sees in their authenticator app. Changing
+    # it affects new enrolments only: an existing entry keeps whatever label it
+    # was created with, and its codes keep working because the shared secret is
+    # untouched. So this is safe to change, but it does mean an instance can end
+    # up with both labels in the wild.
     """An `otpauth://` URI an authenticator app can add directly.
 
     No QR image is generated here — that would need an image-encoding
