@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import logo from "../assets/logo.svg";
 import ArchitectureStack from "./landing/ArchitectureStack.jsx";
+import MarketClash from "./landing/MarketClash.jsx";
 import { Counter, Reveal } from "./landing/effects.jsx";
 
 /**
@@ -268,17 +269,25 @@ export default function Landing({ onGetStarted }) {
   return (
     <div className="min-h-screen bg-white font-sans text-ent-ink antialiased">
       {/* ---------- navigation ---------- */}
+      {/* The bar sits over a dark hero at rest and over light sections once
+          scrolled, so it inverts rather than just gaining a background. Without
+          this the links are dark-on-dark and effectively invisible above the
+          fold — the state that matters most. */}
       <header
         className={`sticky top-0 z-40 transition-all duration-300 ${
           scrolled
             ? "border-b border-ent-border bg-white/85 backdrop-blur-xl"
-            : "border-b border-transparent bg-transparent"
+            : "border-b border-white/[0.08] bg-[#05070C]"
         }`}
       >
         <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-6 lg:px-8">
           <div className="flex items-center gap-2.5">
             <img src={logo} alt="" className="h-8 w-8 rounded-lg" />
-            <span className="font-display text-[17px] font-bold tracking-[-0.02em] text-ent-navy">
+            <span
+              className={`font-display text-[17px] font-bold tracking-[-0.02em] transition-colors ${
+                scrolled ? "text-ent-navy" : "text-white"
+              }`}
+            >
               Legend Trade
             </span>
           </div>
@@ -294,7 +303,11 @@ export default function Landing({ onGetStarted }) {
               <a
                 key={label}
                 href={href}
-                className="text-[14px] font-medium text-ent-muted transition-colors hover:text-ent-navy"
+                className={`text-[14px] font-medium transition-colors ${
+                  scrolled
+                    ? "text-ent-muted hover:text-ent-navy"
+                    : "text-slate-300 hover:text-white"
+                }`}
               >
                 {label}
               </a>
@@ -304,8 +317,9 @@ export default function Landing({ onGetStarted }) {
           <div className="flex items-center gap-3">
             <button
               onClick={onGetStarted}
-              className="hidden text-[14px] font-medium text-ent-muted transition-colors
-                         hover:text-ent-navy sm:block"
+              className={`hidden text-[14px] font-medium transition-colors sm:block ${
+                scrolled ? "text-ent-muted hover:text-ent-navy" : "text-slate-300 hover:text-white"
+              }`}
             >
               Sign in
             </button>
@@ -317,80 +331,78 @@ export default function Landing({ onGetStarted }) {
       </header>
 
       {/* ---------- hero ---------- */}
-      <section className="relative overflow-hidden">
+      {/* The one dark band on an otherwise light page. The holographic clash
+          needs darkness to read as a projection — on white it would look like a
+          sticker — and a dark hero into a light body is a long-standing
+          enterprise pattern rather than an inconsistency. Everything below this
+          section returns to the light surface. */}
+      <section className="relative overflow-hidden bg-[#05070C]">
+        <MarketClash className="pointer-events-none absolute inset-0 h-full w-full" />
+
+        {/* Colour wash: red pooling left, green right, meeting under the
+            headline. Sits above the SVG so both halves read as lit volumes
+            rather than as flat drawings. */}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0
-                     bg-[radial-gradient(ellipse_60%_50%_at_50%_-10%,rgba(37,99,235,0.07),transparent)]"
+                     bg-[radial-gradient(ellipse_45%_60%_at_12%_45%,rgba(239,68,68,0.20),transparent_70%),radial-gradient(ellipse_45%_60%_at_88%_45%,rgba(16,185,129,0.20),transparent_70%)]"
         />
-        {/* Very faint grid, fading out before it reaches the content. Structure
-            without texture noise. */}
+        {/* Centre scrim — the headline has to win against both animals. */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 h-[520px] opacity-[0.5]
-                     [background-image:linear-gradient(#E2E8F0_1px,transparent_1px),linear-gradient(90deg,#E2E8F0_1px,transparent_1px)]
-                     [background-size:64px_64px]
-                     [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,black,transparent)]"
+          className="pointer-events-none absolute inset-0
+                     bg-[radial-gradient(ellipse_38%_55%_at_50%_52%,rgba(5,7,12,0.92),transparent_75%)]"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-32
+                     bg-gradient-to-b from-transparent to-[#05070C]"
         />
 
-        <div className="relative mx-auto max-w-7xl px-6 pb-24 pt-16 lg:px-8 lg:pb-28 lg:pt-24">
-          <div className="grid items-center gap-16 lg:grid-cols-[1.05fr_0.95fr]">
-            <div>
-              <div className="animate-fade-in inline-flex items-center gap-2.5 rounded-full border border-ent-border bg-ent-surface px-3.5 py-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-ent-success" />
-                <span className="text-[13px] font-medium text-ent-slate">
-                  Live market data — no API key required
-                </span>
-              </div>
-
-              <h1 className="mt-7 font-display text-[2.75rem] font-bold leading-[1.06] tracking-[-0.035em] text-ent-navy sm:text-[3.75rem]">
-                Describe the market
-                <br />
-                <span className="text-ent-blue">before predicting it.</span>
-              </h1>
-
-              <p className="mt-7 max-w-xl text-[18px] leading-[1.65] text-ent-muted">
-                Legend Trade is an institutional-grade analysis and execution platform. It
-                computes the evidence for every conclusion, quantifies what it can measure,
-                declares what it cannot, and returns an explicit <strong className="font-semibold text-ent-ink">no trade</strong> when
-                the evidence does not support one.
-              </p>
-
-              <div className="mt-9 flex flex-wrap items-center gap-3">
-                <PrimaryButton onClick={onGetStarted}>Explore the platform</PrimaryButton>
-                <a
-                  href="#docs"
-                  className="rounded-xl border border-ent-border bg-white px-6 py-3 text-[15px]
-                             font-semibold text-ent-navy shadow-[0_1px_2px_rgba(15,23,42,0.05)]
-                             transition-all hover:border-ent-blue/40 hover:text-ent-blue"
-                >
-                  View documentation
-                </a>
-              </div>
-
-              <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 border-t border-ent-border pt-7">
-                {[
-                  ["653", "tests passing"],
-                  ["20", "analysis sections"],
-                  ["3", "broker adapters"],
-                ].map(([value, label]) => (
-                  <div key={label} className="flex items-baseline gap-2">
-                    <span className="font-display text-[22px] font-bold text-ent-navy">
-                      {value}
-                    </span>
-                    <span className="text-[13px] text-ent-muted">{label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="lg:pl-4">
-              <ArchitectureStack />
-            </div>
+        <div className="relative mx-auto max-w-4xl px-6 py-28 text-center lg:py-36">
+          <div className="animate-fade-in inline-flex items-center gap-2.5 rounded-full border border-white/12 bg-white/[0.04] px-4 py-1.5 backdrop-blur-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-ent-success" />
+            <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-slate-300">
+              Evidence first · Live data · No API key required
+            </span>
           </div>
-        </div>
-      </section>
 
+          <h1 className="mt-8 font-display text-[2.6rem] font-bold leading-[1.05] tracking-[-0.035em] text-white sm:text-[4rem]">
+            Describe the market
+            <br />
+            <span className="bg-gradient-to-r from-[#F87171] via-white to-[#34D399] bg-clip-text text-transparent">
+              before predicting it.
+            </span>
+          </h1>
+
+          <p className="mx-auto mt-7 max-w-2xl text-[17px] leading-[1.7] text-slate-400">
+            Legend Trade computes the evidence for every conclusion, quantifies what it can
+            measure, declares what it cannot, and returns an explicit{" "}
+            <strong className="font-semibold text-white">no trade</strong> when the evidence
+            does not support one.
+          </p>
+
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            <PrimaryButton onClick={onGetStarted}>Explore the platform</PrimaryButton>
+            <a
+              href="#docs"
+              className="rounded-xl border border-white/15 bg-white/[0.04] px-6 py-3 text-[15px]
+                         font-semibold text-white backdrop-blur-sm transition-colors
+                         hover:border-white/30 hover:bg-white/10"
+            >
+              View documentation
+            </a>
+          </div>
+
+          <p className="mt-8 font-mono text-[12px] text-slate-500">
+            Paper trading is the default · Live execution stays off until you turn it on
+          </p>
+        </div>
+
+        {/* The request-path diagram moves below the fold copy so the clash has
+            the hero to itself; it reappears in full at the architecture
+            section, which is where someone actually wants to study it. */}
+      </section>
       {/* ---------- statistics ---------- */}
       <section className="border-y border-ent-border bg-ent-surface">
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-px overflow-hidden bg-ent-border px-0 lg:grid-cols-4">
