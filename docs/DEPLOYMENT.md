@@ -329,10 +329,43 @@ that round trip.
    always `DELAYED`, the WebSocket upgrade is not passing through the proxy.
 4. Trigger a password reset and confirm the email arrives with a working link.
 5. Run a backup and restore it into a throwaway copy.
-6. Fill in every `{{PLACEHOLDER}}` in `PRIVACY.md` and `TERMS.md`, and get the
-   regulatory question in both of them answered by a real lawyer.
+6. Fill in every `{{PLACEHOLDER}}` in `PRIVACY.md` and `TERMS.md` (below), and
+   get the regulatory question in both of them answered by a real lawyer.
 
 Item 6 is the one that is not a technical task and is the one most likely to be
 skipped. Whether providing trade setups and probabilities to the public is a
 regulated activity depends on your jurisdiction, and a disclaimer does not
 settle it.
+
+### Rendering the policy documents
+
+`PRIVACY.md` and `TERMS.md` in the repository are templates. Rather than editing
+them by hand in two places, put the answers in one file and render:
+
+```bash
+python scripts/legal.py --init      # writes legal/answers.json — fill it in
+python scripts/legal.py             # renders legal/PRIVACY.md and legal/TERMS.md
+python scripts/legal.py --check     # exit 1 if anything is unanswered
+```
+
+There are nine values. Seven are decisions you can make now — legal entity name,
+service URL, privacy and support addresses, minimum age, software licence, and
+the last-updated date (blank means today). Two are not:
+`GOVERNING_LAW_JURISDICTION` and `LIABILITY_CAP` need a lawyer, and the script
+says so rather than accepting whatever a template found online suggests.
+
+Nothing renders until every value is answered, and answers that are blank, still
+in braces, or say `TBD` are refused — a policy with a visible hole in it is
+better than one that merely looks finished. Every problem is reported in a single
+pass so filling nine values takes one round trip, not nine.
+
+`--check` writes nothing and is the gate to put in a deployment pipeline: no
+launch with an unfilled policy.
+
+Output lands in `legal/`, which is gitignored — the answers and the rendered
+documents belong to one deployment, while the templates belong to the repository.
+Serve the rendered files, not the templates.
+
+The rendered documents keep their **"not yet reviewed by a lawyer"** banner.
+Filling in a legal name is not legal review. Remove that banner by hand once it
+has stopped being true, and not before.
