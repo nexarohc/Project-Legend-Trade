@@ -123,7 +123,10 @@ These are the rules the codebase is actually held to, not aspirations.
    a Redis outage drops back to in-process rate-limit buckets.
 7. **Nothing unverified is described as verified.** The docs distinguish what
    has been run against live data from what has only been tested against
-   recorded wire formats. The broker adapters are in the second category.
+   recorded wire formats, and the line moves only when something is actually
+   run. The Alpaca adapter's authentication and account-reading path crossed it
+   against a real paper account; Alpaca order submission, and every Tradier and
+   IBKR path, have not.
 
 ## 7. History
 

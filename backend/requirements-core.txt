@@ -10,11 +10,15 @@
 # latest resolution of this file — fastapi 0.141, pydantic 2.13, sqlalchemy
 # 2.0.51, starlette 1.5. The code uses stable APIs, so newer is not a gamble.
 #
-# `uvicorn[standard]` pulls in httptools and uvloop, which are compiled. They
-# are wanted for a server and are pure overhead for the command-line scripts —
-# see the note at the bottom if you only need those.
+# Plain `uvicorn`, deliberately, not `uvicorn[standard]`. The extras pull in
+# httptools, uvloop and watchfiles — compiled packages, two of them Rust — which
+# reintroduces exactly the build failure this file exists to avoid. They buy
+# throughput that matters under load and nothing at all on a laptop, so they
+# live in the pinned server file instead. Verified: with this list, every
+# resolved dependency installs from a pure-Python wheel, and the API starts and
+# answers.
 fastapi
-uvicorn[standard]
+uvicorn
 pydantic
 pydantic-settings
 sqlalchemy

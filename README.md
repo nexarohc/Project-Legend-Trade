@@ -80,10 +80,20 @@ backtester's no-look-ahead guarantees, per-user data isolation, and every
 guardrail that can refuse an order.
 
 Live broker execution exists but is **off by default and gated four independent
-ways**. No order has ever been sent to a real broker from this repo, because
-that needs your own credentials — so the Alpaca, Tradier and IBKR adapters are
-covered by tests against recorded wire formats, not against live accounts. Read
-the limitations section of [`docs/TRADING_TERMINAL.md`](./docs/TRADING_TERMINAL.md)
+ways**.
+
+What has been proven against a real server, rather than tested in isolation: the
+**Alpaca adapter's authenticated read path**. Credentials, connectivity and
+account state completed a round trip against a live Alpaca paper account via
+`scripts/preflight.py`, returning the account id, equity and buying power the
+Alpaca dashboard showed. That counts as evidence, because Alpaca's paper and
+live APIs differ only in base URL and key pair.
+
+**No order has ever been transmitted to a broker from this repo.** Reading an
+account and submitting an order are different endpoints with different failure
+modes, and only the first has met a real server. Tradier and IBKR are unverified
+end to end; IBKR was implemented from reconstructed documentation. Read the
+limitations section of [`docs/TRADING_TERMINAL.md`](./docs/TRADING_TERMINAL.md)
 before deploying this anywhere near real money.
 
 ## Relationship to Project-DEX

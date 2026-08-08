@@ -89,12 +89,14 @@ If you are an administrator and you enable it, you accept that:
   credentials, and are real.** They can lose real money.
 - The broker's own terms, margin rules and risk disclosures apply to you
   independently of these terms.
-- **The broker integrations in this software have not been verified against
-  live accounts.** The Alpaca, Tradier and Interactive Brokers adapters are
-  tested against recorded wire formats, not live trading. Interactive Brokers
-  in particular was implemented from reconstructed documentation. Test with a
-  paper account first, and read `docs/TRADING_TERMINAL.md` before enabling live
-  mode.
+- **No order has ever been placed through this software with a real broker.**
+  The Alpaca adapter's authentication and account-reading path has been
+  confirmed against a live Alpaca paper account, but submitting an order is a
+  different endpoint and has only ever been exercised against recorded wire
+  formats. The Tradier and Interactive Brokers adapters are unverified against
+  live accounts entirely, and Interactive Brokers was implemented from
+  reconstructed documentation. Test with a paper account first, and read
+  `docs/TRADING_TERMINAL.md` before enabling live mode.
 - Guardrails — mandatory stop losses, position and exposure limits, the audit
   gate and the kill switch — reduce risk but **do not eliminate it** and can
   fail. They are not a substitute for your own judgement.

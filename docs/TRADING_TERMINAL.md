@@ -1144,6 +1144,12 @@ Things this platform does **not** do, stated plainly:
   or Tradier.** The default is internal paper trading with no broker at all.
   Live requires a server-side environment flag plus a restart, an explicit
   mode switch, a typed confirmation phrase, and separate credentials.
+  **Alpaca's adapter has authenticated against a real Alpaca paper account**
+  and returned matching account id, equity and buying power via
+  `scripts/preflight.py` — so credentials, transport and account reads are
+  proven. **Order submission is not**: it is a separate endpoint with its own
+  request body and failure modes, and no order from this repo has reached any
+  broker.
   **Tradier's adapter has not been exercised against a real Tradier account
   from this repo** — its request/response handling is covered by tests that
   stub the HTTP layer, which proves internal consistency, not that it matches

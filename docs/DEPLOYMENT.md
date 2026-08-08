@@ -257,11 +257,23 @@ covers uvicorn's own access lines too.
 Ordinary accounts get internal simulation and never touch a broker. This
 section is for the administrator enabling `broker_paper`.
 
-**Nothing in this codebase has ever placed an order with a real broker.** The
-Alpaca, Tradier and IBKR adapters are tested against recorded wire formats, not
-live accounts. Alpaca is the shortest path to changing that, because its paper
-and live APIs are identical apart from the base URL and which key pair you
-supply — so a paper test is genuine evidence about live behaviour.
+**Nothing in this codebase has ever placed an order with a real broker.** That
+sentence is still true and worth keeping in front of you.
+
+What *has* been verified: the Alpaca adapter's authenticated read path completed
+a real round trip against a live Alpaca paper account through
+`scripts/preflight.py` — credentials accepted, connection established, and the
+account id, equity and buying power returned matching the Alpaca dashboard. The
+`is_paper` check that guards against live credentials in the paper slot was
+answered by Alpaca itself, not inferred from the variable name.
+
+So authentication, transport, and account reads are proven against a real
+server. **Order submission is not.** It is a different endpoint, a different
+request body, and a different set of failure modes, and it has still only ever
+met a recorded fixture.
+
+Tradier and IBKR have not been verified at all; IBKR was implemented from
+reconstructed documentation.
 
 ### Step 1 — get paper keys
 
