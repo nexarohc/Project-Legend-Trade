@@ -57,3 +57,33 @@ def test_snapshot_fails_closed_when_the_provider_name_is_unrecognised(client):
         snapshot = ws.receive_json()
         assert snapshot["type"] == "snapshot"
         assert snapshot["live"] is False
+
+
+def test_error_frames_carry_the_timeframe_they_belong_to(client, monkeypatch):
+    """A frame the client cannot route is a frame the user never sees.
+
+    The browser dispatches every stream message by `SYMBOL:TIMEFRAME`. An error
+    frame that omitted the timeframe keyed to "NUVOCO:" while the subscriber was
+    registered under "NUVOCO:1h", so no handler matched and the failure was
+    dropped on the floor — the chart sat on "Loading…" indefinitely while the
+    real reason was displayed in a different panel. The timeframe is routing
+    information here, not decoration.
+    """
+    from trading.models import MarketDataError
+
+    def refuse(*args, **kwargs):
+        raise MarketDataError("no provider could serve this")
+
+    import app.routers.market as market_router
+    monkeypatch.setattr(market_router.market_service, "candles", refuse)
+
+    with client.websocket_connect("/market/ws") as ws:
+        ws.send_json({"action": "subscribe", "symbol": "NUVOCO", "timeframe": "1h"})
+        message = ws.receive_json()
+
+    assert message["type"] == "error"
+    assert message["symbol"] == "NUVOCO"
+    assert message["timeframe"] == "1h", (
+        "error frames must name their timeframe or the browser cannot route "
+        "them to the panel that is waiting on that subscription"
+    )

@@ -262,8 +262,17 @@ async def market_stream(websocket: WebSocket):
                         "candles": [c.to_dict() for c in history.candles],
                     })
                 except MarketDataError as exc:
+                    # `timeframe` is load-bearing, not decoration. The client
+                    # routes every frame by `SYMBOL:TIMEFRAME`, so an error frame
+                    # without it keyed to "NUVOCO:" while the subscriber waited
+                    # under "NUVOCO:1h" — no handler matched, the failure was
+                    # dropped on the floor, and the chart sat on "Loading…"
+                    # forever while the analysis panel showed the real reason.
                     await websocket.send_json({
-                        "type": "error", "symbol": symbol, "message": str(exc),
+                        "type": "error",
+                        "symbol": symbol,
+                        "timeframe": timeframe.value,
+                        "message": str(exc),
                     })
                     continue
 

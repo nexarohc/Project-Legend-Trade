@@ -22,6 +22,7 @@ export default function MarketBrowser({ onSelectSymbol }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState(null);
   const [resolved, setResolved] = useState(null);
   const [resolving, setResolving] = useState(false);
   const [resolveError, setResolveError] = useState(null);
@@ -49,8 +50,13 @@ export default function MarketBrowser({ onSelectSymbol }) {
         const { results: raw } = await trading.search(q);
         const scoped = market ? raw.filter((r) => r.asset_class === market.asset_class) : raw;
         setResults((scoped.length ? scoped : raw).slice(0, 10));
-      } catch {
+        setSearchError(null);
+      } catch (e) {
+        // Reported rather than swallowed: an empty dropdown meaning "the
+        // provider is unreachable" looks identical to one meaning "no such
+        // ticker", and only one of those is worth re-typing the query over.
         setResults([]);
+        setSearchError(e.message);
       } finally {
         setSearching(false);
       }
@@ -173,6 +179,14 @@ export default function MarketBrowser({ onSelectSymbol }) {
           />
         </form>
         {searching && <p className="text-[9px] text-term-dim mt-1">searching…</p>}
+        {!searching && searchError && (
+          <p className="text-[9px] text-term-down mt-1 leading-relaxed">
+            search unavailable — {searchError}
+          </p>
+        )}
+        {!searching && !searchError && query.trim().length >= 2 && results.length === 0 && (
+          <p className="text-[9px] text-term-dim mt-1">no matches</p>
+        )}
 
         {results.length > 0 && (
           <div className="mt-1 border border-term-border rounded max-h-56 overflow-y-auto bg-term-raised">

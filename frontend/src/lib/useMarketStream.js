@@ -56,16 +56,40 @@ export function useMarketStream() {
       }
       if (message.type === "pong") return;
 
+      const deliver = (handlers) => {
+        if (!handlers) return;
+        handlers.forEach((handler) => {
+          try {
+            handler(message);
+          } catch (error) {
+            console.error("market stream handler failed", error);
+          }
+        });
+      };
+
       const key = keyOf(message.symbol ?? "", message.timeframe ?? "");
-      const handlers = handlersRef.current.get(key);
-      if (!handlers) return;
-      handlers.forEach((handler) => {
-        try {
-          handler(message);
-        } catch (error) {
-          console.error("market stream handler failed", error);
-        }
-      });
+      const exact = handlersRef.current.get(key);
+      if (exact) {
+        deliver(exact);
+        return;
+      }
+
+      // A frame that names a symbol but no timeframe cannot be routed by the
+      // exact key, and dropping it is the worst option available: the panel
+      // waiting on that symbol keeps showing "Loading…" indefinitely with no
+      // indication anything went wrong. Errors in particular arrived this way,
+      // so they were invisible precisely when they mattered most.
+      //
+      // The server now stamps a timeframe on its error frames, so the exact
+      // path above handles them. This stays as the floor: an unroutable error
+      // reaches every subscriber for that symbol rather than nobody, which is
+      // the right way to be wrong.
+      if (message.type === "error" && message.symbol && !message.timeframe) {
+        const prefix = `${String(message.symbol).toUpperCase()}:`;
+        handlersRef.current.forEach((handlers, registered) => {
+          if (registered.startsWith(prefix)) deliver(handlers);
+        });
+      }
     };
 
     socket.onclose = () => {

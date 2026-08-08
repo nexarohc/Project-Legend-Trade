@@ -54,6 +54,7 @@ function Watchlist({ symbol, onSelectSymbol }) {
   const [input, setInput] = useState("");
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const previousPrices = useRef({});
@@ -70,8 +71,15 @@ function Watchlist({ symbol, onSelectSymbol }) {
       setSearching(true);
       try {
         setResults((await trading.search(query)).results.slice(0, 8));
-      } catch {
-        setResults([]);   // search is a convenience; typing a ticker still works
+        setSearchError(null);
+      } catch (e) {
+        // Swallowing this made a failed search indistinguishable from a search
+        // that found nothing — the same empty dropdown for "the provider is
+        // unreachable" and for "no such ticker", which sends you hunting for a
+        // spelling mistake that isn't there. Typing a ticker directly still
+        // works, so this is a note rather than a blocking error.
+        setResults([]);
+        setSearchError(e.message);
       } finally {
         setSearching(false);
       }
@@ -95,17 +103,36 @@ function Watchlist({ symbol, onSelectSymbol }) {
     return () => clearInterval(id);
   }, [load]);
 
-  const add = async (rawSymbol) => {
+  /**
+   * Add a symbol and chart it.
+   *
+   * Charting it is the part that was missing, and its absence is why search
+   * felt broken: you typed a ticker, picked it out of the dropdown, and the
+   * chart carried on showing whatever it had been showing. The symbol was
+   * filed into the watchlist correctly, but the one thing a person searching
+   * for a stock obviously wants — to look at it — did not happen, so the whole
+   * feature read as dead.
+   *
+   * `fromSearch` distinguishes the two callers. Picking a result out of the
+   * dropdown is an unambiguous "show me this". Submitting the form is too, so
+   * both select — but only a search pick can be trusted to be a real,
+   * exchange-qualified symbol, which matters for the message below.
+   */
+  const add = async (rawSymbol, fromSearch = false) => {
     const next = (rawSymbol ?? input).trim().toUpperCase();
     if (!next) return;
     setBusy(true);
+    setError(null);
     try {
       await trading.addToWatchlist({ symbol: next });
       setInput("");
       setResults([]);
       await load();
+      onSelectSymbol?.(next);
     } catch (e) {
-      setError(e.message);
+      setError(fromSearch
+        ? `Could not add ${next}: ${e.message}`
+        : e.message);
     } finally {
       setBusy(false);
     }
@@ -135,6 +162,14 @@ function Watchlist({ symbol, onSelectSymbol }) {
                      focus:outline-none focus:border-brand-accent"
         />
         {searching && <p className="text-[9px] text-term-dim mt-1">searching…</p>}
+        {!searching && searchError && (
+          <p className="text-[9px] text-term-down mt-1 leading-relaxed">
+            search unavailable — {searchError}. Typing a full symbol still works.
+          </p>
+        )}
+        {!searching && !searchError && input.trim().length >= 2 && results.length === 0 && (
+          <p className="text-[9px] text-term-dim mt-1">no matches</p>
+        )}
 
         {results.length > 0 && (
           <div className="absolute left-2 right-2 top-full mt-1 z-20 bg-term-raised border
@@ -143,7 +178,7 @@ function Watchlist({ symbol, onSelectSymbol }) {
               <button
                 key={`${r.provider}:${r.symbol}`}
                 type="button"
-                onClick={() => add(r.symbol)}
+                onClick={() => add(r.symbol, true)}
                 className="w-full text-left px-2 py-1.5 hover:bg-term-panel transition-colors
                            border-b border-term-border/40 last:border-0"
               >
