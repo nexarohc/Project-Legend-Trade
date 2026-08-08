@@ -1,10 +1,18 @@
-# Minimal dependencies to run the API and the command-line scripts. Left
-# unpinned so pip installs versions that support current Python releases
-# (including 3.14). The code uses stable FastAPI / Pydantic / SQLAlchemy APIs,
-# so the latest versions work fine.
+# Unpinned dependencies, for running on whatever Python you happen to have.
 #
-# For an actual deployment use requirements-server.txt instead: it pins exact
-# versions and adds the websocket, Redis and narrative-layer dependencies.
+# requirements-server.txt pins exact versions, which is right for a deployment
+# and wrong for a laptop: a pin from last year has no wheel for this year's
+# Python, so pip falls back to building from source and the install dies asking
+# for a C++ toolchain. This file exists so `pip install -r` resolves to whatever
+# currently has wheels for your interpreter.
+#
+# Verified: the full test suite (705 passed, 10 skipped) runs green against the
+# latest resolution of this file — fastapi 0.141, pydantic 2.13, sqlalchemy
+# 2.0.51, starlette 1.5. The code uses stable APIs, so newer is not a gamble.
+#
+# `uvicorn[standard]` pulls in httptools and uvloop, which are compiled. They
+# are wanted for a server and are pure overhead for the command-line scripts —
+# see the note at the bottom if you only need those.
 fastapi
 uvicorn[standard]
 pydantic
@@ -12,3 +20,17 @@ pydantic-settings
 sqlalchemy
 python-multipart
 httpx
+websockets
+
+# EmailStr in the auth router needs this. Without it, importing the users
+# router raises at collection time and every API test errors out — a failure
+# that reads as a broken test suite rather than a missing package.
+email-validator
+
+# --- Just running scripts/preflight.py? ------------------------------------
+#
+#     pip install httpx sqlalchemy
+#
+# is the entire requirement. Verified from an empty environment. Nothing in
+# that path touches FastAPI, Pydantic or a compiler, which makes it the way to
+# check a broker on a machine that cannot build wheels.

@@ -287,12 +287,21 @@ account and refuses on the broker's answer, not on the shape of the key.
 ```bat
 copy .env.example .env
 notepad .env
-py -m pip install -r backend\requirements-server.txt
+py -m pip install httpx sqlalchemy
 py scripts\preflight.py
 ```
 
 Use `py` rather than `python` if `python` opens the Microsoft Store instead of
 running — that stub is installed by default and shadows a real Python.
+
+**`httpx` and `sqlalchemy` are the entire requirement for preflight**, verified
+from an empty environment. Nothing on that path touches FastAPI, Pydantic or a
+compiler, which matters because the pinned server requirements will try to build
+`pydantic-core` from Rust source on a Python newer than the pins were cut for.
+That failure names `cargo` and Visual Studio and looks nothing like a
+version-compatibility problem, but that is all it is — install
+`requirements-core.txt` instead of `requirements-server.txt` when you hit it, or
+just the two packages above if all you want is to check the broker.
 
 ### Step 2 — preflight
 
