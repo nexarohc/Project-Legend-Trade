@@ -12,7 +12,10 @@
 # version-compatibility problem. If that happens, use requirements-core.txt,
 # which is unpinned and resolves to whatever has wheels for your interpreter.
 #
-# Last verified green: 705 passed, 10 skipped, on Python 3.11.
+# Last verified green: 705 passed, 10 skipped, on Python 3.11. The unpinned
+# resolution of requirements-core.txt has additionally been confirmed to install
+# and serve on Python 3.14 without a compiler — reach for that file when these
+# pins meet an interpreter newer than themselves.
 
 fastapi==0.141.1
 uvicorn[standard]==0.52.1

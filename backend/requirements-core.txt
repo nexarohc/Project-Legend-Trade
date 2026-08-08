@@ -6,9 +6,12 @@
 # for a C++ toolchain. This file exists so `pip install -r` resolves to whatever
 # currently has wheels for your interpreter.
 #
-# Verified: the full test suite (705 passed, 10 skipped) runs green against the
-# latest resolution of this file — fastapi 0.141, pydantic 2.13, sqlalchemy
-# 2.0.51, starlette 1.5. The code uses stable APIs, so newer is not a gamble.
+# Verified two ways. The full test suite (705 passed, 10 skipped) runs green
+# against the latest resolution of this file on Python 3.11 — fastapi 0.141,
+# pydantic 2.13, sqlalchemy 2.0.51, starlette 1.5. And on **Python 3.14** it
+# installs from wheels with no compiler present (pydantic-core 2.46.4 among
+# them) and the API starts and serves. That second case is the one the pinned
+# server file cannot do.
 #
 # Plain `uvicorn`, deliberately, not `uvicorn[standard]`. The extras pull in
 # httptools, uvloop and watchfiles — compiled packages, two of them Rust — which
