@@ -1,0 +1,229 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* The marketing palette, as variables rather than fixed hexes.
+ *
+ * The alternative was a `dark:` variant on every coloured class in the landing
+ * page — roughly a hundred edits, and a hundred future chances to style one
+ * theme and forget the other. Swapping the values underneath the tokens means
+ * the components never mention a theme at all: `bg-ent-card` is correct in
+ * both, and a new section inherits theme support simply by using the same
+ * tokens everything else uses.
+ *
+ * Space-separated RGB channels rather than hex, so Tailwind's `<alpha-value>`
+ * slot still composes and `bg-ent-card/60` keeps working.
+ */
+:root {
+  --ent-page: 248 250 252;      /* page background            #F8FAFC */
+  --ent-card: 255 255 255;      /* raised surfaces            #FFFFFF */
+  --ent-line: 226 232 240;      /* hairline borders           #E2E8F0 */
+  --ent-head: 15 23 42;         /* headings                   #0F172A */
+  --ent-body: 17 24 39;         /* body copy                  #111827 */
+  --ent-mute: 100 116 139;      /* secondary copy             #64748B */
+  --ent-link: 37 99 235;        /* links and primary actions  #2563EB */
+}
+
+/* Not a tinted copy of the light theme. Backgrounds go near-black to match the
+   terminal the product actually is, borders lift rather than darken, and text
+   stops short of pure white — #FFF on near-black is the classic dark-mode
+   mistake, producing the halation that makes long paragraphs tiring to read. */
+.dark {
+  --ent-page: 8 10 15;
+  --ent-card: 18 22 31;
+  --ent-line: 35 41 54;
+  --ent-head: 241 245 249;
+  --ent-body: 226 232 240;
+  --ent-mute: 148 163 184;
+  --ent-link: 96 165 250;
+}
+
+/* Paint the document itself, not only the sections. Without this, the area
+   below short content and the overscroll region flash the browser default —
+   white, which in dark mode is a strobe on every bounce scroll. */
+html {
+  background-color: rgb(var(--ent-page));
+}
+
+html,
+body {
+  height: 100%;
+}
+
+/* `min-height`, not `height`. The terminal wants a fixed-height shell so each
+   panel scrolls independently, but the landing page is an ordinary long
+   document and must scroll the *page* — anchor links, browser scroll
+   restoration and the mobile URL bar all key off the document scroller, and
+   trapping the content in an inner div breaks all three. Screens that need the
+   fixed shell ask for `h-screen` themselves. */
+#root {
+  min-height: 100%;
+}
+
+/* Smooth scrolling for the landing page's in-page anchors. The
+   prefers-reduced-motion block below overrides this back to `auto`. */
+html {
+  scroll-behavior: smooth;
+}
+
+/* A custom property has to be *registered* with a type before it can be
+   animated — an unregistered one is just a string to the engine, so a keyframe
+   moving it from 0deg to 360deg snaps at 50% instead of rotating. This is what
+   makes the rotating conic-gradient borders on the feature cards possible.
+   Browsers without @property simply render a static border, which is a fine
+   place to land. */
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@layer components {
+  /* A card whose border is a rotating conic gradient. The trick is two stacked
+     backgrounds with different clip boxes: the gradient fills the border box,
+     a flat colour fills the padding box, and `border: 1px solid transparent`
+     leaves exactly the ring visible. No pseudo-element, no extra DOM. */
+  .hud-border {
+    border: 1px solid transparent;
+    background:
+      linear-gradient(#0a0d14, #0a0d14) padding-box,
+      conic-gradient(
+          from var(--angle),
+          rgba(34, 211, 199, 0.55),
+          rgba(124, 92, 255, 0.45),
+          rgba(255, 255, 255, 0.04) 40%,
+          rgba(255, 255, 255, 0.04) 75%,
+          rgba(34, 211, 199, 0.55)
+        )
+        border-box;
+  }
+
+  /* Corner brackets, the cheapest way to make a rectangle read as an
+     instrument rather than a div. Drawn with two gradients per corner so they
+     cost no elements and scale with the box. */
+  .hud-corners::before,
+  .hud-corners::after {
+    content: "";
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-color: rgba(34, 211, 199, 0.5);
+    pointer-events: none;
+  }
+  .hud-corners::before {
+    top: -1px;
+    left: -1px;
+    border-top: 1px solid;
+    border-left: 1px solid;
+  }
+  .hud-corners::after {
+    bottom: -1px;
+    right: -1px;
+    border-bottom: 1px solid;
+    border-right: 1px solid;
+  }
+
+  /* Fine engraved grid. Two repeating gradients rather than an image, so it is
+     resolution-independent and costs no request. */
+  .hud-grid {
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.055) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+}
+
+body {
+  /* Themed, not fixed. This used to be `bg-brand-bg text-slate-100` — correct
+     when the app was only the dark terminal, and a bug the moment a light
+     marketing page existed: it painted #0b0d12 under everything, so light mode
+     rendered dark no matter what the tokens said. The symptom was a theme
+     toggle that flipped `html.dark` correctly and appeared to do nothing.
+     Every terminal screen sets `bg-term-bg` on its own root, so nothing was
+     relying on this to be dark. */
+  background-color: rgb(var(--ent-page));
+  color: rgb(var(--ent-body));
+  @apply antialiased font-sans;
+  /* Slightly tighter than Inter's default; at display sizes the stock
+     tracking reads loose and amateurish. */
+  letter-spacing: -0.011em;
+
+  /* Inter Variable ships an optical-size axis. Letting the browser drive it
+     means small text gets slightly more open spacing and larger apertures while
+     display sizes tighten up — the difference between type that looks set and
+     type that looks merely scaled. Ignored by static builds of the face. */
+  font-optical-sizing: auto;
+  /* Contextual alternates: Inter's default `calt` handles pairs like "->" and
+     fixes spacing around punctuation. On by default in most engines, stated
+     here so a future `font-feature-settings` rule does not silently drop it. */
+  font-feature-settings: "calt" 1;
+}
+
+/* Tabular figures everywhere a number can change in place. Proportional
+   digits make a ticking price jitter sideways as the glyph widths change,
+   which reads as instability on a trading surface. */
+.font-mono,
+[class*="tabular"] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Respect a user who has asked the OS for less motion: the landing page's
+   drift and fade are decoration, and decoration is not worth making someone
+   ill. Transitions stay, they just stop moving things around. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-700 rounded-full;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@layer components {
+  /* Terminal controls. Small, dense and quiet — a trading surface should
+     spend its visual weight on the market, not on its own buttons. */
+  .btn-term {
+    @apply px-2 py-1 rounded border border-term-border bg-term-raised text-term-muted
+           text-xs font-medium transition-colors
+           hover:text-term-text hover:border-term-dim
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .btn-term-primary {
+    @apply px-2 py-1 rounded bg-brand-accent text-white text-xs font-medium
+           transition-opacity hover:opacity-90
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  /* Scroll without a visible bar. Used on the terminal's tab strips, where a
+     6px scrollbar under a 28px-tall row of tabs eats a fifth of the row and
+     looks broken. The content still scrolls by wheel, trackpad and keyboard —
+     this hides the indicator, not the ability. */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* The chart library draws its own crosshair; suppress the OS one over it so
+   the two never appear at once. */
+.tv-lightweight-charts {
+  cursor: crosshair;
+}

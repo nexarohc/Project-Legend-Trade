@@ -1,0 +1,40 @@
+# Server-only dependencies for the trading terminal, pinned for reproducible
+# deployments. The Docker image builds from this file.
+#
+# Deliberately excludes the desktop-assistant extras (playwright, pyautogui,
+# pyaudio, faster-whisper, pvporcupine): they need a display, a microphone and
+# hundreds of megabytes of models that a headless container has no use for.
+#
+# **Pins have a shelf life.** These are exact versions, so on a Python newer
+# than they were built for pip finds no matching wheel, falls back to building
+# from source, and the install fails demanding a C++ toolchain — pydantic-core
+# is Rust, so the error names cargo and Visual Studio and looks nothing like a
+# version-compatibility problem. If that happens, use requirements-core.txt,
+# which is unpinned and resolves to whatever has wheels for your interpreter.
+#
+# Last verified green: 705 passed, 10 skipped, on Python 3.11. The unpinned
+# resolution of requirements-core.txt has additionally been confirmed to install
+# and serve on Python 3.14 without a compiler — reach for that file when these
+# pins meet an interpreter newer than themselves.
+
+fastapi==0.141.1
+uvicorn[standard]==0.52.1
+pydantic==2.13.4
+pydantic-settings==2.15.0
+email-validator==2.3.0
+sqlalchemy==2.0.51
+python-multipart==0.0.32
+
+# Market data: httpx for REST, websockets for the exchange streams.
+httpx==0.28.1
+websockets==17.0.1
+
+# LLM narrative layer (optional at runtime — the platform degrades gracefully
+# to deterministic output when no key is configured).
+anthropic==0.34.2
+
+# Shared rate-limit buckets across workers. Only used when REDIS_URL is set;
+# without it the in-process limiter runs and this is never imported. Included
+# rather than left to the operator so the feature works the moment it is
+# configured, instead of failing at startup with an install instruction.
+redis==5.0.8

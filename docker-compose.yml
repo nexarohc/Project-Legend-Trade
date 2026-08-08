@@ -1,0 +1,75 @@
+# Legend Trade.
+#
+# `docker compose up` gives you a working terminal on http://localhost:8000
+# with no API keys at all — crypto streams from Binance/Coinbase and equities
+# come from Yahoo Finance. Add keys to .env for production-grade equity data.
+#
+# Postgres and Redis are included but OPTIONAL, behind the `scale` profile.
+# The default deployment uses SQLite, which is the right choice for a single
+# user: it needs no server, no tuning and no backup story beyond copying a
+# file. Turn them on with `--profile scale` when you actually need concurrent
+# writers or a shared cache.
+
+services:
+  legend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: legend-trade:latest
+    container_name: legend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: "8000"
+      LEGEND_DB_PATH: /data/legend.db
+      # Allow the browser dev server and the container's own origin.
+      CORS_ORIGINS: '["http://localhost:5173","http://localhost:8000","http://127.0.0.1:8000"]'
+    volumes:
+      # Persist the database across container rebuilds.
+      - legend-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  postgres:
+    profiles: ["scale"]
+    image: postgres:16-alpine
+    container_name: legend-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: legend
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-before-deploying}
+      POSTGRES_DB: legend
+    volumes:
+      - legend-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U legend"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    profiles: ["scale"]
+    image: redis:7-alpine
+    container_name: legend-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - legend-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  legend-data:
+  legend-postgres:
+  legend-redis:
