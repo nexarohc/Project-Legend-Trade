@@ -2,6 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
+/* The marketing palette, as variables rather than fixed hexes.
+ *
+ * The alternative was a `dark:` variant on every coloured class in the landing
+ * page — roughly a hundred edits, and a hundred future chances to style one
+ * theme and forget the other. Swapping the values underneath the tokens means
+ * the components never mention a theme at all: `bg-ent-card` is correct in
+ * both, and a new section inherits theme support simply by using the same
+ * tokens everything else uses.
+ *
+ * Space-separated RGB channels rather than hex, so Tailwind's `<alpha-value>`
+ * slot still composes and `bg-ent-card/60` keeps working.
+ */
+:root {
+  --ent-page: 248 250 252;      /* page background            #F8FAFC */
+  --ent-card: 255 255 255;      /* raised surfaces            #FFFFFF */
+  --ent-line: 226 232 240;      /* hairline borders           #E2E8F0 */
+  --ent-head: 15 23 42;         /* headings                   #0F172A */
+  --ent-body: 17 24 39;         /* body copy                  #111827 */
+  --ent-mute: 100 116 139;      /* secondary copy             #64748B */
+  --ent-link: 37 99 235;        /* links and primary actions  #2563EB */
+}
+
+/* Not a tinted copy of the light theme. Backgrounds go near-black to match the
+   terminal the product actually is, borders lift rather than darken, and text
+   stops short of pure white — #FFF on near-black is the classic dark-mode
+   mistake, producing the halation that makes long paragraphs tiring to read. */
+.dark {
+  --ent-page: 8 10 15;
+  --ent-card: 18 22 31;
+  --ent-line: 35 41 54;
+  --ent-head: 241 245 249;
+  --ent-body: 226 232 240;
+  --ent-mute: 148 163 184;
+  --ent-link: 96 165 250;
+}
+
+/* Paint the document itself, not only the sections. Without this, the area
+   below short content and the overscroll region flash the browser default —
+   white, which in dark mode is a strobe on every bounce scroll. */
+html {
+  background-color: rgb(var(--ent-page));
+}
+
 html,
 body {
   height: 100%;
@@ -91,7 +134,16 @@ html {
 }
 
 body {
-  @apply bg-brand-bg text-slate-100 antialiased font-sans;
+  /* Themed, not fixed. This used to be `bg-brand-bg text-slate-100` — correct
+     when the app was only the dark terminal, and a bug the moment a light
+     marketing page existed: it painted #0b0d12 under everything, so light mode
+     rendered dark no matter what the tokens said. The symptom was a theme
+     toggle that flipped `html.dark` correctly and appeared to do nothing.
+     Every terminal screen sets `bg-term-bg` on its own root, so nothing was
+     relying on this to be dark. */
+  background-color: rgb(var(--ent-page));
+  color: rgb(var(--ent-body));
+  @apply antialiased font-sans;
   /* Slightly tighter than Inter's default; at display sizes the stock
      tracking reads loose and amateurish. */
   letter-spacing: -0.011em;

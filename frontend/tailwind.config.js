@@ -16,16 +16,26 @@ export default {
         // dense dark instrument. A trading application is dark because a trader
         // stares at it for eight hours; a site that has to earn trust in eight
         // seconds is not the same problem and should not borrow that answer.
+        //
+        // The tokens a section should reach for — surface, card, border, navy,
+        // ink, muted, blue — resolve through CSS variables defined in
+        // index.css, so light and dark swap underneath without any component
+        // naming a theme. The fixed hexes below them are the ones that must
+        // *not* move: price direction and status colours mean the same thing
+        // whatever the background, and a green that shifted between themes
+        // would be a green nobody can trust.
         ent: {
-          navy: "#0F172A",
+          navy: "rgb(var(--ent-head) / <alpha-value>)",
+          ink: "rgb(var(--ent-body) / <alpha-value>)",
+          muted: "rgb(var(--ent-mute) / <alpha-value>)",
+          surface: "rgb(var(--ent-page) / <alpha-value>)",
+          card: "rgb(var(--ent-card) / <alpha-value>)",
+          border: "rgb(var(--ent-line) / <alpha-value>)",
+          blue: "rgb(var(--ent-link) / <alpha-value>)",
+
           slate: "#1E293B",
-          blue: "#2563EB",
           "blue-light": "#3B82F6",
           sky: "#38BDF8",
-          surface: "#F8FAFC",
-          border: "#E2E8F0",
-          ink: "#111827",
-          muted: "#64748B",
           success: "#10B981",
           warning: "#F59E0B",
           error: "#EF4444",

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import logo from "../assets/logo.svg";
+import ThemeToggle from "./ThemeToggle.jsx";
 import ArchitectureStack from "./landing/ArchitectureStack.jsx";
+import CapabilityToggles from "./landing/CapabilityToggles.jsx";
 import MarketClash from "./landing/MarketClash.jsx";
 import { Counter, Reveal } from "./landing/effects.jsx";
 
@@ -78,7 +80,7 @@ const DOMAINS = [
 ];
 
 const STATS = [
-  { value: 653, label: "Automated tests", note: "passing, no network required" },
+  { value: 705, label: "Automated tests", note: "passing, no network required" },
   { value: 20, label: "Analysis sections", note: "each one explained" },
   { value: 15, label: "Audit checks", note: "any can reject a strategy" },
   { value: 8, label: "Data providers", note: "one interface, automatic failover" },
@@ -267,7 +269,7 @@ export default function Landing({ onGetStarted }) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white font-sans text-ent-ink antialiased">
+    <div className="min-h-screen bg-ent-surface font-sans text-ent-ink antialiased">
       {/* ---------- navigation ---------- */}
       {/* The bar sits over a dark hero at rest and over light sections once
           scrolled, so it inverts rather than just gaining a background. Without
@@ -276,7 +278,7 @@ export default function Landing({ onGetStarted }) {
       <header
         className={`sticky top-0 z-40 transition-all duration-300 ${
           scrolled
-            ? "border-b border-ent-border bg-white/85 backdrop-blur-xl"
+            ? "border-b border-ent-border bg-ent-card/85 backdrop-blur-xl"
             : "border-b border-white/[0.08] bg-[#05070C]"
         }`}
       >
@@ -296,6 +298,7 @@ export default function Landing({ onGetStarted }) {
             {[
               ["Platform", "#platform"],
               ["Architecture", "#architecture"],
+              ["Configure", "#configure"],
               ["Principles", "#principles"],
               ["Documentation", "#docs"],
               ["Disclosure", "#disclosure"],
@@ -315,6 +318,10 @@ export default function Landing({ onGetStarted }) {
           </nav>
 
           <div className="flex items-center gap-3">
+            {/* `onDark` tracks the nav's own background rather than the theme:
+                unscrolled, the bar is transparent over the near-black hero and
+                needs light-on-dark treatment even in light mode. */}
+            <ThemeToggle onDark={!scrolled} />
             <button
               onClick={onGetStarted}
               className={`hidden text-[14px] font-medium transition-colors sm:block ${
@@ -363,23 +370,23 @@ export default function Landing({ onGetStarted }) {
           <div className="animate-fade-in inline-flex items-center gap-2.5 rounded-full border border-white/12 bg-white/[0.04] px-4 py-1.5 backdrop-blur-sm">
             <span className="h-1.5 w-1.5 rounded-full bg-ent-success" />
             <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-slate-300">
-              Evidence first · Live data · No API key required
+              705 tests passing · Live market data · No API key to start
             </span>
           </div>
 
           <h1 className="mt-8 font-display text-[2.6rem] font-bold leading-[1.05] tracking-[-0.035em] text-white sm:text-[4rem]">
-            Describe the market
+            Every number here
             <br />
             <span className="bg-gradient-to-r from-[#F87171] via-white to-[#34D399] bg-clip-text text-transparent">
-              before predicting it.
+              can be traced back.
             </span>
           </h1>
 
           <p className="mx-auto mt-7 max-w-2xl text-[17px] leading-[1.7] text-slate-400">
-            Legend Trade computes the evidence for every conclusion, quantifies what it can
-            measure, declares what it cannot, and returns an explicit{" "}
-            <strong className="font-semibold text-white">no trade</strong> when the evidence
-            does not support one.
+            A trading terminal that shows its working. Probabilities come from base rates measured
+            on the symbol's own history — never from a model's opinion — and the platform says{" "}
+            <strong className="font-semibold text-white">no trade</strong> out loud when the
+            evidence does not support one.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
@@ -432,7 +439,7 @@ export default function Landing({ onGetStarted }) {
           {DOMAINS.map((domain, index) => (
             <Reveal key={domain.title} delay={(index % 3) * 80}>
               <div
-                className="group h-full rounded-2xl border border-ent-border bg-white p-7
+                className="group h-full rounded-2xl border border-ent-border bg-ent-card p-7
                            shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-300
                            hover:-translate-y-1 hover:border-ent-blue/30
                            hover:shadow-[0_18px_44px_-16px_rgba(15,23,42,0.18)]"
@@ -479,7 +486,7 @@ export default function Landing({ onGetStarted }) {
                 reason a trade can be rejected lives in one file.
               </SectionHead>
 
-              <div className="mt-8 rounded-2xl border border-ent-border bg-white p-5">
+              <div className="mt-8 rounded-2xl border border-ent-border bg-ent-card p-5">
                 <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.14em] text-ent-muted">
                   guardrails.evaluate()
                 </div>
@@ -495,10 +502,26 @@ if not decision.allowed:
               </div>
             </div>
 
-            <div className="min-w-0 overflow-hidden rounded-3xl border border-ent-border bg-white p-6 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.25)] lg:p-8">
+            <div className="min-w-0 overflow-hidden rounded-3xl border border-ent-border bg-ent-card p-6 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.25)] lg:p-8">
               <ArchitectureStack />
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ---------- configure ---------- */}
+      {/* Deliberately placed after the architecture diagram and before the
+          principles. By this point a visitor knows what the parts are, so a
+          panel of switches reads as configuration rather than as a feature
+          list; putting it any earlier would make it decoration. */}
+      <section id="configure" className="scroll-mt-24 mx-auto max-w-7xl px-6 py-24 lg:px-8 lg:py-28">
+        <SectionHead eyebrow="Configure" title="Everything dangerous is off until you turn it on">
+          These switches write a real <code className="font-mono text-[0.92em]">.env</code> —
+          the same variable names the server reads, starting from the same defaults it ships
+          with. Flip them and copy the result.
+        </SectionHead>
+        <div className="mt-12">
+          <CapabilityToggles />
         </div>
       </section>
 
@@ -512,7 +535,7 @@ if not decision.allowed:
         <div className="mt-14 grid gap-5 md:grid-cols-2">
           {PRINCIPLES.map((principle, index) => (
             <Reveal key={principle.title} delay={(index % 2) * 80}>
-              <div className="h-full rounded-2xl border border-ent-border bg-white p-8 transition-shadow duration-300 hover:shadow-[0_18px_44px_-18px_rgba(15,23,42,0.16)]">
+              <div className="h-full rounded-2xl border border-ent-border bg-ent-card p-8 transition-shadow duration-300 hover:shadow-[0_18px_44px_-18px_rgba(15,23,42,0.16)]">
                 <div className="font-mono text-[11px] text-ent-blue">
                   {String(index + 1).padStart(2, "0")}
                 </div>
@@ -542,7 +565,7 @@ if not decision.allowed:
                   target="_blank"
                   rel="noreferrer"
                   className="group flex h-full flex-col rounded-2xl border border-ent-border
-                             bg-white p-7 transition-all duration-300 hover:-translate-y-1
+                             bg-ent-card p-7 transition-all duration-300 hover:-translate-y-1
                              hover:border-ent-blue/30
                              hover:shadow-[0_18px_44px_-16px_rgba(15,23,42,0.18)]"
                 >
@@ -575,7 +598,7 @@ if not decision.allowed:
           </SectionHead>
 
           <Reveal delay={100}>
-            <div className="divide-y divide-ent-border rounded-2xl border border-ent-border bg-white">
+            <div className="divide-y divide-ent-border rounded-2xl border border-ent-border bg-ent-card">
               {LIMITS.map(([title, body]) => (
                 <div key={title} className="flex gap-4 p-6">
                   <span
@@ -600,7 +623,7 @@ if not decision.allowed:
         <div className="mx-auto max-w-4xl px-6 py-24 lg:px-8 lg:py-28">
           <SectionHead eyebrow="FAQ" title="Questions worth answering plainly" center />
           <Reveal delay={80}>
-            <div className="mt-12 rounded-2xl border border-ent-border bg-white px-7">
+            <div className="mt-12 rounded-2xl border border-ent-border bg-ent-card px-7">
               {FAQ.map(([question, answer], index) => (
                 <FaqItem key={question} question={question} answer={answer} index={index} />
               ))}
@@ -612,7 +635,11 @@ if not decision.allowed:
       {/* ---------- final CTA ---------- */}
       <section className="mx-auto max-w-7xl px-6 py-24 lg:px-8 lg:py-28">
         <Reveal>
-          <div className="relative overflow-hidden rounded-3xl bg-ent-navy px-8 py-16 text-center sm:px-16 sm:py-20">
+          {/* Literal, for the same reason as the button inside it: `ent-navy` is
+              now a token that inverts with the theme, and this card is a dark
+              panel with white text in *both* themes. Using the token here would
+              turn it white-on-white in dark mode. */}
+          <div className="relative overflow-hidden rounded-3xl bg-[#0F172A] px-8 py-16 text-center sm:px-16 sm:py-20">
             <div
               aria-hidden="true"
               className="pointer-events-none absolute inset-0
@@ -626,17 +653,23 @@ if not decision.allowed:
                          [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,black,transparent)]"
             />
             <h2 className="relative font-display text-[2rem] font-bold leading-[1.12] tracking-[-0.03em] text-white sm:text-[2.75rem]">
-              Open it and check the evidence yourself
+              Don't take any of this on trust
             </h2>
             <p className="relative mx-auto mt-5 max-w-2xl text-[17px] leading-[1.7] text-slate-300">
-              Paper trading is the default and needs no broker account. Nothing reaches real
-              money without deliberate, separate steps.
+              Open a chart and read the evidence behind the number. Paper trading is the default
+              and needs no broker account, no card, and no API key — and nothing reaches real
+              money without four separate, deliberate steps.
             </p>
             <div className="relative mt-9 flex flex-wrap justify-center gap-3">
               <button
                 onClick={onGetStarted}
-                className="rounded-xl bg-white px-7 py-3 text-[15px] font-semibold text-ent-navy
-                           transition-all hover:bg-slate-100 active:translate-y-px"
+                /* Literal colours, not tokens. This button is white on a band
+                   that stays dark in both themes, so `text-ent-navy` would
+                   resolve to near-white in dark mode and erase the label. A
+                   token is the right default; a fixed surface is exactly where
+                   it stops being one. */
+                className="rounded-xl bg-white px-7 py-3 text-[15px] font-semibold text-[#0F172A]
+                           transition-all hover:bg-slate-200 active:translate-y-px"
               >
                 Get started
               </button>
@@ -653,7 +686,7 @@ if not decision.allowed:
       </section>
 
       {/* ---------- footer ---------- */}
-      <footer className="border-t border-ent-border bg-white">
+      <footer className="border-t border-ent-border bg-ent-card">
         <div className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
           <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
             <div>

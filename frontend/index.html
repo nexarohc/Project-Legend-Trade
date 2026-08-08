@@ -11,7 +11,13 @@
     />
 
   </head>
-  <body class="dark">
+  <!-- Deliberately no `class="dark"` here. It was hardcoded when this app was
+       only the dark terminal, and it silently defeated the theme system: `.dark`
+       on <body> redefines the palette variables for every descendant, so the
+       toggle could set and clear the class on <html> all it liked and nothing
+       below <body> ever changed. src/lib/theme.js owns that class now, and puts
+       it on <html>. -->
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

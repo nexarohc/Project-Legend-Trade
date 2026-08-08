@@ -34,7 +34,13 @@ import "@fontsource/space-grotesk/700.css";
 import "@fontsource-variable/jetbrains-mono";
 
 import App from "./App.jsx";
+import { initTheme } from "./lib/theme.js";
 import "./index.css";
+
+// Before the first render, so the page never paints light and then snaps to
+// dark. A flash of the wrong theme is the one bug in a theme switcher that
+// every visitor notices.
+initTheme();
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

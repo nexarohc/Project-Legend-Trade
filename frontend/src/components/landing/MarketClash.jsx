@@ -252,6 +252,15 @@ export default function MarketClash({ className = "" }) {
           <stop offset="70%" stopColor="#fff" stopOpacity="0.75" />
           <stop offset="100%" stopColor="#fff" stopOpacity="0" />
         </linearGradient>
+        {/* Feathered so gradually that no boundary is visible — a scrim you can
+            see the edge of is worse than no scrim. */}
+        <radialGradient id="text-scrim">
+          <stop offset="0%" stopColor="#05070D" stopOpacity="0.82" />
+          <stop offset="45%" stopColor="#05070D" stopOpacity="0.66" />
+          <stop offset="75%" stopColor="#05070D" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="#05070D" stopOpacity="0" />
+        </radialGradient>
+
         <mask id="mask-left">
           <rect x="0" y="0" width="760" height="620" fill="url(#fade-left)" />
         </mask>
@@ -266,8 +275,15 @@ export default function MarketClash({ className = "" }) {
           <Candles rising={false} colour={RED} />
         </g>
 
-        <g filter="url(#glow-red)">
-          <g transform="translate(58, 178) scale(1.32)">
+        {/* Placement is constrained by `slice` cropping, which is easy to get
+            wrong by eye. At the common desktop ratio the renderer scales to
+            cover and trims the sides, leaving roughly x=100..1340 of the 1440
+            viewBox actually visible. An earlier pass sat the bear at scale 1.32
+            with its rear at x=58: a third of the animal was cropped away and its
+            muzzle landed on top of the body copy. Kept inside 150..410 it reads
+            whole, and the centre column stays clear for text. */}
+        <g filter="url(#glow-red)" opacity="0.85">
+          <g transform="translate(118, 304) scale(0.85)">
             <BearEars colour={RED} />
             <polygon points={BEAR_BODY} fill="url(#bear-fill)" stroke={RED} strokeWidth="1.8" />
             <polygon points={BEAR_BODY} fill="url(#scan)" />
@@ -303,8 +319,13 @@ export default function MarketClash({ className = "" }) {
           <Candles rising colour={GREEN} />
         </g>
 
-        <g filter="url(#glow-green)">
-          <g transform="translate(886, 172) scale(1.3)">
+        {/* Mirror of the bear's placement: inside 1040..1300, so the horns clear
+            the text column on the left and the rump clears the crop on the
+            right. Both animals share a baseline at y≈540 so they read as
+            standing on the same ground plane rather than floating at
+            independent heights. */}
+        <g filter="url(#glow-green)" opacity="0.85">
+          <g transform="translate(936, 302) scale(0.85)">
             <BullHorns colour={GREEN} />
             <polygon points={BULL_BODY} fill="url(#bull-fill)" stroke={GREEN} strokeWidth="1.8" />
             <polygon points={BULL_BODY} fill="url(#scan)" />
@@ -315,10 +336,12 @@ export default function MarketClash({ className = "" }) {
         </g>
 
         <g fill={GREEN} fontFamily="'JetBrains Mono Variable', monospace" opacity="0.85">
-          <text x="960" y="126" fontSize="22">+4.75%</text>
-          <text x="1085" y="200" fontSize="18">+3.42%</text>
-          <text x="1195" y="286" fontSize="16">+2.18%</text>
-          <text x="1300" y="366" fontSize="16">+6.35%</text>
+          {/* Kept inside x≈1300. Anything further right is trimmed by the same
+              `slice` crop that governs the animals, and a percentage sliced in
+              half mid-digit looks like a rendering bug rather than a backdrop. */}
+          <text x="952" y="126" fontSize="22">+4.75%</text>
+          <text x="1078" y="200" fontSize="18">+3.42%</text>
+          <text x="1186" y="286" fontSize="16">+2.18%</text>
         </g>
 
         <g filter="url(#glow-green)">
@@ -336,6 +359,16 @@ export default function MarketClash({ className = "" }) {
 
       {/* Reflective floor line where the two halves meet the ground plane. */}
       <line x1="0" y1="560" x2="1440" y2="560" stroke="#fff" strokeWidth="1" opacity="0.07" />
+
+      {/* A scrim under the headline, painted last so it sits over everything.
+          Keeping the artwork out of the centre column is the first line of
+          defence, but it cannot be the only one: the crop shifts with viewport
+          ratio, so at some window sizes a candle or a drifting percentage will
+          slide under the text no matter where the animals are parked. This
+          guarantees contrast at every size instead of at the sizes checked by
+          hand. Elliptical and heavily feathered, so it darkens the middle
+          without drawing an edge anyone can see. */}
+      <ellipse cx="720" cy="290" rx="560" ry="240" fill="url(#text-scrim)" />
     </svg>
   );
 }
