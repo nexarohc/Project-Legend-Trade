@@ -196,21 +196,100 @@ function Sign({ x, y, r, plus, colour, delay = 0 }) {
   );
 }
 
+/**
+ * Depth layers.
+ *
+ * Parallax only reads as depth if the layers move by *different* amounts —
+ * shifting everything together just slides the picture. These multipliers are
+ * the composition's z-order made literal: distant market data barely moves, the
+ * animals move a little, foreground particles move most.
+ *
+ * Driven by CSS variables the pointer hook writes, so a pointer move costs a
+ * compositor transform rather than a React render.
+ */
+function Layer({ depth, children, className = "", style }) {
+  return (
+    <g
+      className={className}
+      style={{
+        transform: `translate(calc(var(--px, 0) * ${depth}px), calc(var(--py, 0) * ${depth * 0.42}px))`,
+        transition: "transform 60ms linear",
+        ...style,
+      }}
+    >
+      {children}
+    </g>
+  );
+}
+
+/** Drifting motes. Deterministic placement, so no load produces a bad frame. */
+function Particles({ colour, x0, x1, count = 18, seedStart }) {
+  let seed = seedStart;
+  const random = () => {
+    seed = (seed * 1103515245 + 12345) % 2147483648;
+    return seed / 2147483648;
+  };
+  return (
+    <g fill={colour}>
+      {Array.from({ length: count }, (_, i) => {
+        const cx = x0 + random() * (x1 - x0);
+        const cy = 140 + random() * 720;
+        const r = 0.9 + random() * 1.8;
+        return (
+          <circle
+            key={i}
+            cx={cx}
+            cy={cy}
+            r={r}
+            opacity={0.25 + random() * 0.45}
+            className="animate-float"
+            style={{ animationDelay: `${(random() * 6).toFixed(2)}s`, transformOrigin: `${cx}px ${cy}px` }}
+          />
+        );
+      })}
+    </g>
+  );
+}
+
 export default function MarketClash({ className = "" }) {
   const RED = "#EF4444";
   const GREEN = "#10B981";
 
+  // One definition of each animal, rendered twice: upright, and mirrored below
+  // the floor line as a reflection. Duplicating the markup instead would mean
+  // every future change to the geometry has to be made in two places, and the
+  // second one is the one that gets forgotten.
+  const bear = (
+    <>
+      <BearEars colour={RED} />
+      <polygon points={BEAR_BODY} fill="url(#bear-fill)" stroke={RED} strokeWidth="1.8" />
+      <polygon points={BEAR_BODY} fill="url(#scan)" />
+      <Facets points={BEAR_FACETS} stroke={RED} />
+      <circle cx="298" cy="122" r="3.4" fill="#fff" opacity="0.95" />
+      <circle cx="338" cy="142" r="3" fill={RED} opacity="0.95" />
+    </>
+  );
+
+  const bull = (
+    <>
+      <BullHorns colour={GREEN} />
+      <polygon points={BULL_BODY} fill="url(#bull-fill)" stroke={GREEN} strokeWidth="1.8" />
+      <polygon points={BULL_BODY} fill="url(#scan)" />
+      <Facets points={BULL_FACETS} stroke={GREEN} />
+      <circle cx="118" cy="126" r="3.4" fill="#fff" opacity="0.95" />
+      <circle cx="70" cy="152" r="3" fill={GREEN} opacity="0.95" />
+    </>
+  );
+
   return (
     <svg
       className={className}
-      viewBox="0 0 1440 620"
-      preserveAspectRatio="xMidYMid slice"
+      viewBox="0 0 1440 1000"
+      preserveAspectRatio="xMidYMax slice"
       aria-hidden="true"
       focusable="false"
     >
       <defs>
-        {/* The glow that makes a flat vector read as a projection. One blur
-            per side, reused by every element on that side. */}
         <filter id="glow-red" x="-30%" y="-30%" width="160%" height="160%">
           <feGaussianBlur stdDeviation="7" result="b" />
           <feMerge>
@@ -235,13 +314,52 @@ export default function MarketClash({ className = "" }) {
           <stop offset="100%" stopColor={GREEN} stopOpacity="0.10" />
         </linearGradient>
 
-        {/* Horizontal scanlines — the single cheapest cue that says hologram. */}
         <pattern id="scan" width="4" height="4" patternUnits="userSpaceOnUse">
           <rect width="4" height="1" fill="#fff" opacity="0.05" />
         </pattern>
 
-        {/* Fade each half out toward the centre so the two colours meet in a
-            soft seam instead of a hard vertical edge behind the headline. */}
+        {/* Rim light. Volumetric lighting is what separates a cinematic render
+            from a flat vector, and the cheapest convincing version is a wedge
+            of colour behind each animal, brightest at the silhouette edge. */}
+        <radialGradient id="rim-red" cx="0.34" cy="0.62" r="0.5">
+          <stop offset="0%" stopColor="#F87171" stopOpacity="0.30" />
+          <stop offset="55%" stopColor="#DC2626" stopOpacity="0.11" />
+          <stop offset="100%" stopColor="#7F1D1D" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id="rim-green" cx="0.66" cy="0.62" r="0.5">
+          <stop offset="0%" stopColor="#34D399" stopOpacity="0.30" />
+          <stop offset="55%" stopColor="#059669" stopOpacity="0.11" />
+          <stop offset="100%" stopColor="#064E3B" stopOpacity="0" />
+        </radialGradient>
+
+        {/* Reflections fade with distance from the floor line rather than
+            cutting off — a mirror image with a hard bottom edge reads as a
+            copy-paste, not as a reflection. */}
+        <linearGradient id="reflect-fade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fff" stopOpacity="0.22" />
+          <stop offset="55%" stopColor="#fff" stopOpacity="0.05" />
+          <stop offset="100%" stopColor="#fff" stopOpacity="0" />
+        </linearGradient>
+        <mask id="reflect-mask">
+          <rect x="0" y="880" width="1440" height="200" fill="url(#reflect-fade)" />
+        </mask>
+
+        <radialGradient id="text-scrim">
+          <stop offset="0%" stopColor="#030505" stopOpacity="0.86" />
+          <stop offset="45%" stopColor="#030505" stopOpacity="0.70" />
+          <stop offset="75%" stopColor="#030505" stopOpacity="0.30" />
+          <stop offset="100%" stopColor="#030505" stopOpacity="0" />
+        </radialGradient>
+
+        {/* The clash. Sits at the midline and is invisible until the cursor is
+            actually between the two animals. */}
+        <radialGradient id="collision">
+          <stop offset="0%" stopColor="#E2E8F0" stopOpacity="0.5" />
+          <stop offset="35%" stopColor="#34D399" stopOpacity="0.22" />
+          <stop offset="70%" stopColor="#F87171" stopOpacity="0.14" />
+          <stop offset="100%" stopColor="#F87171" stopOpacity="0" />
+        </radialGradient>
+
         <linearGradient id="fade-left" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="#fff" stopOpacity="1" />
           <stop offset="70%" stopColor="#fff" stopOpacity="0.75" />
@@ -252,123 +370,134 @@ export default function MarketClash({ className = "" }) {
           <stop offset="70%" stopColor="#fff" stopOpacity="0.75" />
           <stop offset="100%" stopColor="#fff" stopOpacity="0" />
         </linearGradient>
-        {/* Feathered so gradually that no boundary is visible — a scrim you can
-            see the edge of is worse than no scrim. */}
-        <radialGradient id="text-scrim">
-          <stop offset="0%" stopColor="#05070D" stopOpacity="0.82" />
-          <stop offset="45%" stopColor="#05070D" stopOpacity="0.66" />
-          <stop offset="75%" stopColor="#05070D" stopOpacity="0.28" />
-          <stop offset="100%" stopColor="#05070D" stopOpacity="0" />
-        </radialGradient>
-
         <mask id="mask-left">
-          <rect x="0" y="0" width="760" height="620" fill="url(#fade-left)" />
+          <rect x="0" y="0" width="760" height="1000" fill="url(#fade-left)" />
         </mask>
         <mask id="mask-right">
-          <rect x="680" y="0" width="760" height="620" fill="url(#fade-right)" />
+          <rect x="680" y="0" width="760" height="1000" fill="url(#fade-right)" />
         </mask>
       </defs>
 
+      {/* Volumetric wash, furthest back and barely moving. */}
+      <Layer depth={5}>
+        <rect x="0" y="0" width="1440" height="1000" fill="url(#rim-red)" />
+        <rect x="0" y="0" width="1440" height="1000" fill="url(#rim-green)" />
+      </Layer>
+
       {/* ---------------- bear side (left, red, falling) ---------------- */}
       <g mask="url(#mask-left)">
-        <g transform="translate(20, 60)" opacity="0.5">
-          <Candles rising={false} colour={RED} />
-        </g>
-
-        {/* Placement is constrained by `slice` cropping, which is easy to get
-            wrong by eye. At the common desktop ratio the renderer scales to
-            cover and trims the sides, leaving roughly x=100..1340 of the 1440
-            viewBox actually visible. An earlier pass sat the bear at scale 1.32
-            with its rear at x=58: a third of the animal was cropped away and its
-            muzzle landed on top of the body copy. Kept inside 150..410 it reads
-            whole, and the centre column stays clear for text. */}
-        <g filter="url(#glow-red)" opacity="0.85">
-          <g transform="translate(118, 304) scale(0.85)">
-            <BearEars colour={RED} />
-            <polygon points={BEAR_BODY} fill="url(#bear-fill)" stroke={RED} strokeWidth="1.8" />
-            <polygon points={BEAR_BODY} fill="url(#scan)" />
-            <Facets points={BEAR_FACETS} stroke={RED} />
-            {/* Eye and nose — two dots, and the silhouette becomes a face. */}
-            <circle cx="298" cy="122" r="3.4" fill="#fff" opacity="0.95" />
-            <circle cx="338" cy="142" r="3" fill={RED} opacity="0.95" />
+        <Layer depth={9}>
+          <g transform="translate(20, 430)" opacity="0.5">
+            <Candles rising={false} colour={RED} />
           </g>
-        </g>
+          <g fill={RED} fontFamily="'JetBrains Mono Variable', monospace" opacity="0.8">
+            <text x="96" y="330" fontSize="24">−4.75%</text>
+            <text x="246" y="486" fontSize="19">−2.24%</text>
+            <text x="132" y="614" fontSize="17">−1.88%</text>
+          </g>
+        </Layer>
 
-        <g fill={RED} fontFamily="'JetBrains Mono Variable', monospace" opacity="0.8">
-          <text x="120" y="130" fontSize="22">−4.75%</text>
-          <text x="300" y="196" fontSize="18">−2.24%</text>
-          <text x="185" y="262" fontSize="16">−1.88%</text>
-        </g>
+        {/* Brightening is opacity on a duplicate glow pass rather than a filter
+            swap: changing a filter forces the browser to re-rasterise the whole
+            subtree every frame, which is what makes hover effects on SVG
+            stutter. Opacity is a compositor property. */}
+        <Layer depth={17}>
+          <g
+            style={{
+              opacity: "calc(0.32 + var(--bear-energy, 0) * 0.55)",
+              transition: "opacity 220ms ease-out",
+            }}
+          >
+            <ellipse cx="330" cy="800" rx="330" ry="200" fill="url(#rim-red)" />
+          </g>
 
-        <g filter="url(#glow-red)">
-          <Sign x={262} y={92} r={22} plus={false} colour={RED} delay={0} />
-          <Sign x={445} y={140} r={17} plus={false} colour={RED} delay={1.4} />
-          <Sign x={136} y={404} r={19} plus={false} colour={RED} delay={2.6} />
-        </g>
+          <g filter="url(#glow-red)" opacity="0.85">
+            <g transform="translate(132, 602)">{bear}</g>
+          </g>
 
-        {/* Down arrows */}
-        <g stroke={RED} strokeWidth="2.4" strokeLinecap="round" opacity="0.7">
-          <path d="M74 78 L74 128 M62 114 L74 128 L86 114" fill="none" />
-          <path d="M196 210 L196 254 M185 242 L196 254 L207 242" fill="none" />
-        </g>
+          {/* Reflection: mirrored about the floor line, faded by the mask. */}
+          <g mask="url(#reflect-mask)" opacity="0.5" filter="url(#glow-red)">
+            <g transform="translate(132, 1158) scale(1, -1)">{bear}</g>
+          </g>
+        </Layer>
+
+        <Layer depth={26}>
+          <g filter="url(#glow-red)">
+            <Sign x={214} y={232} r={26} plus={false} colour={RED} delay={0} />
+            <Sign x={392} y={392} r={18} plus={false} colour={RED} delay={1.4} />
+            <Sign x={118} y={716} r={21} plus={false} colour={RED} delay={2.6} />
+          </g>
+          <g stroke={RED} strokeWidth="2.4" strokeLinecap="round" opacity="0.7">
+            <path d="M96 400 L96 470 M80 452 L96 470 L112 452" fill="none" />
+            <path d="M300 250 L300 312 M285 296 L300 312 L315 296" fill="none" />
+          </g>
+          <Particles colour={RED} x0={80} x1={540} count={22} seedStart={4177} />
+        </Layer>
       </g>
 
       {/* ---------------- bull side (right, green, rising) ---------------- */}
       <g mask="url(#mask-right)">
-        <g transform="translate(760, 60)" opacity="0.5">
-          <Candles rising colour={GREEN} />
-        </g>
-
-        {/* Mirror of the bear's placement: inside 1040..1300, so the horns clear
-            the text column on the left and the rump clears the crop on the
-            right. Both animals share a baseline at y≈540 so they read as
-            standing on the same ground plane rather than floating at
-            independent heights. */}
-        <g filter="url(#glow-green)" opacity="0.85">
-          <g transform="translate(936, 302) scale(0.85)">
-            <BullHorns colour={GREEN} />
-            <polygon points={BULL_BODY} fill="url(#bull-fill)" stroke={GREEN} strokeWidth="1.8" />
-            <polygon points={BULL_BODY} fill="url(#scan)" />
-            <Facets points={BULL_FACETS} stroke={GREEN} />
-            <circle cx="118" cy="126" r="3.4" fill="#fff" opacity="0.95" />
-            <circle cx="70" cy="152" r="3" fill={GREEN} opacity="0.95" />
+        <Layer depth={9}>
+          <g transform="translate(760, 430)" opacity="0.5">
+            <Candles rising colour={GREEN} />
           </g>
-        </g>
+          <g fill={GREEN} fontFamily="'JetBrains Mono Variable', monospace" opacity="0.85">
+            <text x="1084" y="318" fontSize="24">+4.75%</text>
+            <text x="1176" y="470" fontSize="19">+3.42%</text>
+            <text x="1246" y="610" fontSize="17">+2.18%</text>
+          </g>
+        </Layer>
 
-        <g fill={GREEN} fontFamily="'JetBrains Mono Variable', monospace" opacity="0.85">
-          {/* Kept inside x≈1300. Anything further right is trimmed by the same
-              `slice` crop that governs the animals, and a percentage sliced in
-              half mid-digit looks like a rendering bug rather than a backdrop. */}
-          <text x="952" y="126" fontSize="22">+4.75%</text>
-          <text x="1078" y="200" fontSize="18">+3.42%</text>
-          <text x="1186" y="286" fontSize="16">+2.18%</text>
-        </g>
+        <Layer depth={17}>
+          <g
+            style={{
+              opacity: "calc(0.32 + var(--bull-energy, 0) * 0.55)",
+              transition: "opacity 220ms ease-out",
+            }}
+          >
+            <ellipse cx="1110" cy="800" rx="330" ry="200" fill="url(#rim-green)" />
+          </g>
 
-        <g filter="url(#glow-green)">
-          <Sign x={1132} y={100} r={24} plus colour={GREEN} delay={0.6} />
-          <Sign x={1372} y={310} r={20} plus colour={GREEN} delay={2} />
-          <Sign x={1004} y={430} r={16} plus colour={GREEN} delay={3.1} />
-        </g>
+          <g filter="url(#glow-green)" opacity="0.85">
+            <g transform="translate(898, 600)">{bull}</g>
+          </g>
 
-        {/* Up arrows */}
-        <g stroke={GREEN} strokeWidth="2.4" strokeLinecap="round" opacity="0.75">
-          <path d="M1352 150 L1352 100 M1341 114 L1352 100 L1363 114" fill="none" />
-          <path d="M1240 250 L1240 206 M1229 218 L1240 206 L1251 218" fill="none" />
-        </g>
+          <g mask="url(#reflect-mask)" opacity="0.5" filter="url(#glow-green)">
+            <g transform="translate(898, 1160) scale(1, -1)">{bull}</g>
+          </g>
+        </Layer>
+
+        <Layer depth={26}>
+          <g filter="url(#glow-green)">
+            <Sign x={1222} y={232} r={27} plus colour={GREEN} delay={0.6} />
+            <Sign x={1306} y={498} r={20} plus colour={GREEN} delay={2} />
+            <Sign x={1046} y={706} r={17} plus colour={GREEN} delay={3.1} />
+          </g>
+          <g stroke={GREEN} strokeWidth="2.4" strokeLinecap="round" opacity="0.75">
+            <path d="M1310 400 L1310 330 M1294 348 L1310 330 L1326 348" fill="none" />
+            <path d="M1150 300 L1150 236 M1134 254 L1150 236 L1166 254" fill="none" />
+          </g>
+          <Particles colour={GREEN} x0={920} x1={1360} count={22} seedStart={9311} />
+        </Layer>
       </g>
 
-      {/* Reflective floor line where the two halves meet the ground plane. */}
-      <line x1="0" y1="560" x2="1440" y2="560" stroke="#fff" strokeWidth="1" opacity="0.07" />
+      {/* Floor line where both halves meet the ground plane. */}
+      <line x1="0" y1="880" x2="1440" y2="880" stroke="#fff" strokeWidth="1" opacity="0.07" />
 
-      {/* A scrim under the headline, painted last so it sits over everything.
-          Keeping the artwork out of the centre column is the first line of
-          defence, but it cannot be the only one: the crop shifts with viewport
-          ratio, so at some window sizes a candle or a drifting percentage will
-          slide under the text no matter where the animals are parked. This
-          guarantees contrast at every size instead of at the sizes checked by
-          hand. Elliptical and heavily feathered, so it darkens the middle
-          without drawing an edge anyone can see. */}
-      <ellipse cx="720" cy="290" rx="560" ry="240" fill="url(#text-scrim)" />
+      {/* The clash itself, only present while the cursor is between them. */}
+      <g
+        style={{
+          opacity: "var(--centre-energy, 0)",
+          transition: "opacity 260ms ease-out",
+        }}
+      >
+        <ellipse cx="720" cy="420" rx="260" ry="230" fill="url(#collision)" />
+      </g>
+
+      {/* Painted last so nothing above can compromise the headline's contrast.
+          Also the one layer that must not parallax: the text it protects does
+          not move, so a scrim that did would slide out from under it. */}
+      <ellipse cx="720" cy="330" rx="620" ry="300" fill="url(#text-scrim)" />
     </svg>
   );
 }

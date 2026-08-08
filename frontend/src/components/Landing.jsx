@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import logo from "../assets/logo.svg";
+import { usePointerScene } from "../lib/usePointerScene.js";
 import ThemeToggle from "./ThemeToggle.jsx";
 import ArchitectureStack from "./landing/ArchitectureStack.jsx";
 import CapabilityToggles from "./landing/CapabilityToggles.jsx";
-import MarketClash from "./landing/MarketClash.jsx";
+import HeroBackdrop from "./landing/HeroBackdrop.jsx";
+import MarketStatus from "./landing/MarketStatus.jsx";
 import { Counter, Reveal } from "./landing/effects.jsx";
 
 /**
@@ -79,12 +81,46 @@ const DOMAINS = [
   },
 ];
 
+/*
+ * The reference mockup put "AI Accuracy 87.6%", "Success Rate 73.2%",
+ * "2.4M+ Total Trades" and "25K+ Active Users" here. Every one of those is
+ * invented: this platform has no users, has never measured prediction accuracy,
+ * and has never transmitted an order. Publishing fabricated performance figures
+ * for a trading product is not a design decision — it is the specific thing
+ * financial regulators exist to punish, and it would also destroy the only
+ * claim the product actually has, which is that its numbers can be checked.
+ *
+ * Same four cards, same prominence, real figures. Each one is verifiable from
+ * the repository by anybody who wants to count.
+ */
 const STATS = [
-  { value: 705, label: "Automated tests", note: "passing, no network required" },
-  { value: 20, label: "Analysis sections", note: "each one explained" },
-  { value: 15, label: "Audit checks", note: "any can reject a strategy" },
-  { value: 8, label: "Data providers", note: "one interface, automatic failover" },
+  { value: 705, suffix: "", label: "Automated tests", note: "passing, no network required",
+    icon: "shield" },
+  { value: 20, suffix: "", label: "Analysis sections", note: "each one computed and explained",
+    icon: "chart" },
+  { value: 15, suffix: "", label: "Audit checks", note: "any single one can reject a strategy",
+    icon: "gavel" },
+  { value: 8, suffix: "", label: "Data providers", note: "one interface, automatic failover",
+    icon: "feed" },
 ];
+
+/** Small line icons for the metric cards. Inline, so there is no icon font. */
+function StatIcon({ name, className = "" }) {
+  const common = {
+    className, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor",
+    strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true,
+  };
+  if (name === "shield") {
+    return <svg {...common}><path d="M12 3l7 3v6c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6l7-3Z" /><path d="m9 12 2 2 4-4" /></svg>;
+  }
+  if (name === "chart") {
+    return <svg {...common}><path d="M4 19h16" /><path d="M6 16V9M11 16V5M16 16v-5M21 16v-8" /></svg>;
+  }
+  if (name === "gavel") {
+    return <svg {...common}><path d="M4 20h9" /><path d="m8 13 6-6" /><path d="m11 4 6 6-2.5 2.5-6-6L11 4Z" /><path d="m15 12 5 5" /></svg>;
+  }
+  return <svg {...common}><path d="M4 11a9 9 0 0 1 9 9" /><path d="M4 4a16 16 0 0 1 16 16" /><circle cx="5" cy="19" r="1.5" /></svg>;
+}
 
 const PRINCIPLES = [
   {
@@ -260,6 +296,10 @@ function FaqItem({ question, answer, index }) {
 
 export default function Landing({ onGetStarted }) {
   const [scrolled, setScrolled] = useState(false);
+  // Drives the hero's parallax and the cursor-proximity energy on each animal.
+  // Writes CSS variables directly rather than state, so pointer movement never
+  // re-renders this component.
+  const { ref: sceneRef } = usePointerScene();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -343,8 +383,8 @@ export default function Landing({ onGetStarted }) {
           sticker — and a dark hero into a light body is a long-standing
           enterprise pattern rather than an inconsistency. Everything below this
           section returns to the light surface. */}
-      <section className="relative overflow-hidden bg-[#05070C]">
-        <MarketClash className="pointer-events-none absolute inset-0 h-full w-full" />
+      <section ref={sceneRef} className="relative overflow-hidden bg-[#030505]">
+        <HeroBackdrop className="pointer-events-none absolute inset-0 h-full w-full" />
 
         {/* Colour wash: red pooling left, green right, meeting under the
             headline. Sits above the SVG so both halves read as lit volumes
@@ -369,58 +409,87 @@ export default function Landing({ onGetStarted }) {
         <div className="relative mx-auto max-w-4xl px-6 py-28 text-center lg:py-36">
           <div className="animate-fade-in inline-flex items-center gap-2.5 rounded-full border border-white/12 bg-white/[0.04] px-4 py-1.5 backdrop-blur-sm">
             <span className="h-1.5 w-1.5 rounded-full bg-ent-success" />
+            {/* The brief asked for "AI POWERED. DATA DRIVEN. RESULTS FOCUSED."
+                The first is false — no signal, probability or risk decision in
+                this codebase consults a model — and the third promises an
+                outcome nobody can promise about markets. This says the thing
+                that is both true and harder for a competitor to copy. */}
             <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-slate-300">
-              705 tests passing · Live market data · No API key to start
+              Measured, not predicted · Every number traceable · 705 tests passing
             </span>
           </div>
 
           <h1 className="mt-8 font-display text-[2.6rem] font-bold leading-[1.05] tracking-[-0.035em] text-white sm:text-[4rem]">
-            Every number here
+            The market has two sides.
             <br />
             <span className="bg-gradient-to-r from-[#F87171] via-white to-[#34D399] bg-clip-text text-transparent">
-              can be traced back.
+              We help you see both.
             </span>
           </h1>
 
           <p className="mx-auto mt-7 max-w-2xl text-[17px] leading-[1.7] text-slate-400">
-            A trading terminal that shows its working. Probabilities come from base rates measured
-            on the symbol's own history — never from a model's opinion — and the platform says{" "}
+            Institutional-grade technical analysis with the reasoning attached. Probabilities come
+            from base rates measured on the symbol's own history, every figure traces back to
+            something computed, and the platform says{" "}
             <strong className="font-semibold text-white">no trade</strong> out loud when the
             evidence does not support one.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-            <PrimaryButton onClick={onGetStarted}>Explore the platform</PrimaryButton>
+            <PrimaryButton onClick={onGetStarted}>Start trading smarter →</PrimaryButton>
             <a
-              href="#docs"
+              href="#platform"
               className="rounded-xl border border-white/15 bg-white/[0.04] px-6 py-3 text-[15px]
                          font-semibold text-white backdrop-blur-sm transition-colors
                          hover:border-white/30 hover:bg-white/10"
             >
-              View documentation
+              Explore the platform
             </a>
           </div>
+
+          {/* Live, or absent. Never a plausible-looking placeholder. */}
+          <MarketStatus />
 
           <p className="mt-8 font-mono text-[12px] text-slate-500">
             Paper trading is the default · Live execution stays off until you turn it on
           </p>
+
         </div>
 
         {/* The request-path diagram moves below the fold copy so the clash has
             the hero to itself; it reappears in full at the architecture
             section, which is where someone actually wants to study it. */}
       </section>
-      {/* ---------- statistics ---------- */}
-      <section className="border-y border-ent-border bg-ent-surface">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-px overflow-hidden bg-ent-border px-0 lg:grid-cols-4">
+
+      {/* ---------- metrics ---------- */}
+      {/* Kept out of the hero band and given its own section on the same near
+          black. Inside the hero these cards ran straight through the animals'
+          legs: the artwork is anchored to the bottom of that band, so anything
+          added to the bottom of it lands on top of them. Below the fold the
+          glass still reads as glass — it needs a dark ground, not the hero
+          specifically — and the clash gets the whole band to itself. */}
+      <section className="border-b border-white/[0.06] bg-[#030505]">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 px-6 pb-20 pt-4 sm:gap-4
+                        lg:grid-cols-4 lg:px-8">
           {STATS.map((stat, index) => (
             <Reveal key={stat.label} delay={index * 70}>
-              <div className="h-full bg-ent-surface px-6 py-10 lg:px-8">
-                <div className="font-display text-[2.5rem] font-bold leading-none tracking-[-0.03em] text-ent-navy">
+              <div className="group h-full rounded-2xl border border-white/10 bg-white/[0.035]
+                              p-5 text-left backdrop-blur-md transition-colors duration-300
+                              hover:border-white/20 hover:bg-white/[0.06]">
+                <div className="flex items-center gap-2.5">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg
+                                   border border-white/10 bg-white/[0.05] text-emerald-300">
+                    <StatIcon name={stat.icon} className="h-4 w-4" />
+                  </span>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-slate-500">
+                    {stat.label}
+                  </span>
+                </div>
+                <div className="mt-3 font-display text-[1.9rem] font-bold leading-none
+                                tracking-[-0.03em] text-white sm:text-[2.1rem]">
                   <Counter value={stat.value} />
                 </div>
-                <div className="mt-3 text-[14px] font-semibold text-ent-ink">{stat.label}</div>
-                <div className="mt-1 text-[13px] text-ent-muted">{stat.note}</div>
+                <div className="mt-1.5 text-[12.5px] leading-snug text-slate-500">{stat.note}</div>
               </div>
             </Reveal>
           ))}
