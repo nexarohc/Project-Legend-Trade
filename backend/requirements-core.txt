@@ -1,10 +1,10 @@
-# Minimal dependencies to run Dex's text chat + AI (on Gemini or Claude).
-# Left unpinned so pip installs the latest versions, which support current
-# Python releases (including 3.14). The code uses stable FastAPI / Pydantic /
-# SQLAlchemy APIs, so the latest versions work fine.
+# Minimal dependencies to run the API and the command-line scripts. Left
+# unpinned so pip installs versions that support current Python releases
+# (including 3.14). The code uses stable FastAPI / Pydantic / SQLAlchemy APIs,
+# so the latest versions work fine.
 #
-# The heavier voice/browser/desktop libraries in requirements.txt are only
-# needed once you turn those features on.
+# For an actual deployment use requirements-server.txt instead: it pins exact
+# versions and adds the websocket, Redis and narrative-layer dependencies.
 fastapi
 uvicorn[standard]
 pydantic

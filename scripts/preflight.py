@@ -45,6 +45,7 @@ from pathlib import Path
 # Run from anywhere: the repo root has to be importable for `trading.*`.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from trading.env import DEFAULT_ENV_FILE, load_env_file  # noqa: E402
 from trading.execution import guardrails  # noqa: E402
 from trading.execution.base import (  # noqa: E402
     ExecutionMode,
@@ -63,9 +64,20 @@ def line(status: str, message: str) -> None:
     print(f"[{status}] {message}")
 
 
-def check_credentials(broker: str, mode: ExecutionMode, adapter) -> bool:
+def check_credentials(broker: str, mode: ExecutionMode, adapter, loaded: list[str]) -> bool:
     """Credentials present? Report *which* variables, never their values."""
     print("\n1. Credentials")
+    # Say where they came from. "MISSING" printed while a correctly filled-in
+    # .env sits in the repo root is the most confusing output this script could
+    # produce, so the loader's result is reported either way.
+    if loaded:
+        print(f"       loaded {len(loaded)} variable(s) from {DEFAULT_ENV_FILE.name}")
+    elif DEFAULT_ENV_FILE.is_file():
+        print(f"       {DEFAULT_ENV_FILE.name} was read, but every name in it "
+              "was already set in the environment")
+    else:
+        print(f"       no .env at {DEFAULT_ENV_FILE.parent} — reading the environment only")
+
     if adapter is None:
         line(CROSS, f"no adapter for broker {broker!r}")
         return False
@@ -222,13 +234,18 @@ def main() -> int:
     print(f"Legend Trade preflight — broker={args.broker} mode={mode.value}")
     print("No order is transmitted by this script.")
 
+    # Adapters read credentials straight from os.environ, and pydantic-settings
+    # populates a Settings object rather than the environment — so without this
+    # the documented `.env` is invisible to everything below.
+    loaded = load_env_file()
+
     try:
         adapter = _default_adapter_factory(args.broker, mode)
     except Exception as exc:  # noqa: BLE001 - report, don't traceback at an operator
         line(CROSS, f"could not construct the {args.broker} adapter: {exc}")
         return 1
 
-    if not check_credentials(args.broker, mode, adapter):
+    if not check_credentials(args.broker, mode, adapter, loaded):
         print("\nNOT READY — add credentials, then run this again.")
         return 1
 

@@ -24,6 +24,22 @@ from app.routers import (
 )
 from database.db import engine, init_db
 from database.migrations import run_migrations
+from trading.env import load_env_file
+
+# `settings` reads .env through pydantic-settings, which fills the Settings
+# object and leaves os.environ untouched. Broker adapters deliberately read
+# os.environ directly, so that a credential can never arrive from the database
+# or from a request body. Both choices are right; together they mean credentials
+# written into .env exactly as documented are invisible to the adapters.
+#
+# Docker hides this by passing `env_file: .env`, which makes them real
+# environment variables before Python starts. Running uvicorn straight from a
+# shell does not, and the symptom is a broker that reports itself unconfigured
+# while the file sits there correctly filled in.
+#
+# Anything already set in the real environment wins, so this cannot override
+# what an orchestrator supplied.
+load_env_file()
 
 configure_logging(settings.log_format, settings.log_level)
 logger = logging.getLogger("legend.backend")

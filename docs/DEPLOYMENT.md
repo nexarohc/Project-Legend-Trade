@@ -265,8 +265,10 @@ supply — so a paper test is genuine evidence about live behaviour.
 
 ### Step 1 — get paper keys
 
-Create a free Alpaca account, switch to **Paper Trading**, and generate an API
-key pair. Put them in `.env` (which is gitignored — never commit them):
+Create a free Alpaca account on the **Trading API** (not the Broker API, which
+is for running a brokerage, and not the Market Data API — price data comes from
+the providers in section 3). Switch to **Paper Trading** and generate a key
+pair. Put them in `.env` (which is gitignored — never commit them):
 
 ```
 ALPACA_PAPER_KEY_ID=...
@@ -275,6 +277,22 @@ ALPACA_PAPER_SECRET_KEY=...
 
 Paper and live read *different* variable names on purpose. Sharing one pair
 makes it far too easy to point live keys at what you believe is the sandbox.
+
+Paper key IDs begin `PK` and live ones `AK`, which is a handy glance-check but
+not the one that counts: preflight asks Alpaca whether the account is a paper
+account and refuses on the broker's answer, not on the shape of the key.
+
+**On Windows**, `cmd.exe` has no `cp`, and `#` is not a comment character:
+
+```bat
+copy .env.example .env
+notepad .env
+py -m pip install -r backend\requirements-server.txt
+py scripts\preflight.py
+```
+
+Use `py` rather than `python` if `python` opens the Microsoft Store instead of
+running — that stub is installed by default and shadows a real Python.
 
 ### Step 2 — preflight
 
@@ -289,14 +307,27 @@ rules to show exactly which would refuse it. It exits non-zero unless the chain
 is clear, so it works as a deployment gate.
 
 With nothing configured it names the missing variables rather than saying
-"not configured":
+"not configured", and says where it looked:
 
 ```
 1. Credentials
+       loaded 2 variable(s) from .env
 [ FAIL ] alpaca has no credentials for broker_paper mode
 [ warn ]   ALPACA_PAPER_KEY_ID: MISSING
 [ warn ]   ALPACA_PAPER_SECRET_KEY: MISSING
 ```
+
+That first line matters more than it looks. `.env` is read by pydantic-settings
+into a `Settings` object, which never touches `os.environ` — and broker adapters
+read `os.environ` directly, deliberately, so a credential can never arrive from
+the database or a request body. Both choices are correct and together they used
+to mean a correctly filled-in `.env` was invisible to the adapters unless Docker
+injected it via `env_file:`. `trading/env.py` now loads the file explicitly at
+both entry points, and preflight reports what it found so "MISSING" can never
+again mean "I never looked there".
+
+Real environment variables always win over `.env`, so an orchestrator's
+configuration cannot be overridden by a stale file left in the working directory.
 
 Size the sample order to something you would actually place — the guardrails
 are proportional to equity, and the default 10% position cap refuses more
